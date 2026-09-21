@@ -1,13 +1,22 @@
 <!doctype html>
-<html lang="en">
+<!-- 整页默认中文 + 暗色，收藏室才像特勤处库房，而不是白天的药店橱窗 -->
+<html lang="zh-CN" class="dark">
   <head>
     <meta charset="UTF-8" />
+
+    <!-- 浏览器页签上的小图标，换品牌以后只改这一处 -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>web</title>
+
+    <!-- 手机按设备宽度排，并给刘海屏留出安全区，避免收藏柜顶到状态栏 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <title>中医特勤处 · 收藏室</title>
   </head>
   <body>
+    <!-- React 把收藏室整页画进这个空盒，没有它页面就是白的 -->
     <div id="root"></div>
+
+    <!-- 应用入口：路由、样式、收藏室页面都从这里启动 -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "units": "meters",
+  "blenderUp": "Z",
+  "gltfUp": "Y",
+  "pedestal": {
+    "object": "Display_Pedestal",
+    "height": 0.032,
+    "radius": 0.126,
+    "file": "showcase/showcase.glb"
+  },
+  "herbPlacement": {
+    "anchorObject": "Herb_Anchor",
+    "positionBlenderZup": [
+      0.0,
+      0.0,
+      0.156
+    ],
+    "positionThreeYup": [
+      0.0,
+      0.156,
+      -0.0
+    ],
+    "floatGap": 0.088,
+    "note": "Place each herb GLB origin at Herb_Anchor. Do not sit the herb on the pedestal top."
+  },
+  "camera": {
+    "location": [
+      0.46,
+      -0.46,
+      0.3
+    ],
+    "target": [
+      0.0,
+      0.0,
+      0.108
+    ],
+    "focalLengthMm": 85.0,
+    "sensorMm": 36.0
+  },
+  "lights": [
+    "Key_Light",
+    "Fill_Light",
+    "Rim_Light"
+  ],
+  "background": "Background",
+  "firstHerb": {
+    "id": "chenpi",
+    "file": "herbs/chenpi/chenpi.glb",
+    "thumbnail": "herbs/chenpi/chenpi-thumbnail.png",
+    "sourceBlend": "blender/herbs/chenpi/chenpi_source.blend"
+  }
+}

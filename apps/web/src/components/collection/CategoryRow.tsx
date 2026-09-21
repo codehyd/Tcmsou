@@ -1,0 +1,37 @@
+import { cn } from "@/lib/utils";
+
+// 单个柜门要知道：叫什么、现货几味、亮不亮、点了告诉谁
+interface CategoryRowProps {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}
+
+// 功效分类里的一行：左边药类名，右边现货数
+// 选中时亮青边，像灯管扫到这一格；不写 5/5，免得像「这类药就五种」
+export function CategoryRow({
+  label,
+  count,
+  active,
+  onClick,
+}: CategoryRowProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm transition-colors",
+        active
+          ? "border-l-2 border-intel bg-white/8 text-foreground"
+          : "border-l-2 border-transparent text-foreground/70 hover:bg-white/5 hover:text-foreground",
+      )}
+    >
+      {/* 柜门名字，点它等于只打开这一只抽屉 */}
+      <span>{label}</span>
+
+      {/* 只报本室现货，不报天花板 */}
+      <span className="tabular-nums text-xs text-muted-foreground">{count}</span>
+    </button>
+  );
+}

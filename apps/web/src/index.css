@@ -1,1 +1,236 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+
+/* 暗色选择器：html 上有 .dark 时，整页走库房夜灯而不是白底药店 */
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Geist Variable', sans-serif;
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+    /* 收藏柜石板卡、侧栏轨、青选中色，像特勤处会议室而不是暗室 */
+    --color-cabinet: var(--cabinet);
+    --color-cabinet-border: var(--cabinet-border);
+    --color-cabinet-muted: var(--cabinet-muted);
+    --color-intel: var(--intel);
+    --color-rail: var(--rail);
+    --color-dock: var(--dock);
+    --color-exhibit: var(--exhibit);
+
+    /* 展品在灯下轻轻浮，像橱窗样品还没换成 3D 雕塑 */
+    --animate-exhibit-float: exhibit-float 3.4s ease-in-out infinite;
+
+    /* 超宽屏货架断点：1920 起五列，2400 起六列，2560 显示器才不显得空荡荡 */
+    --breakpoint-3xl: 120rem;
+    --breakpoint-4xl: 150rem;
+}
+
+:root {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --radius: 0.625rem;
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-ring: oklch(0.708 0 0);
+    /* 浅色收藏柜：石板卡、侧栏轨；intel 是选中时的青色灯 */
+    --cabinet: oklch(0.94 0.01 250);
+    --cabinet-border: oklch(0.84 0.01 250);
+    --cabinet-muted: oklch(0.42 0.02 250);
+    --intel: oklch(0.45 0.1 170);
+    --rail: oklch(0.96 0.01 250);
+    --dock: oklch(0.95 0.01 250);
+    --exhibit: oklch(0.82 0.05 95);
+
+    /* 滚动条滑块和轨道，浅色主题用淡灰，避免刺眼白条 */
+    --scrollbar-size: 8px;
+    --scrollbar-track: oklch(0.94 0 0);
+    --scrollbar-thumb: oklch(0.72 0 0);
+    --scrollbar-thumb-hover: oklch(0.56 0 0);
+}
+
+.dark {
+    /* 墨蓝灰房间底，抬亮一点，避免近黑底把字和卡片一起吞掉 */
+    --background: oklch(0.24 0.02 250);
+    --foreground: oklch(0.96 0.01 90);
+    --card: oklch(0.28 0.02 250);
+    --card-foreground: oklch(0.96 0.01 90);
+    --popover: oklch(0.28 0.02 250);
+    --popover-foreground: oklch(0.96 0.01 90);
+    --primary: oklch(0.78 0.11 170);
+    --primary-foreground: oklch(0.2 0.02 250);
+    --secondary: oklch(0.3 0.02 250);
+    --secondary-foreground: oklch(0.96 0.01 90);
+    --muted: oklch(0.3 0.02 250);
+    --muted-foreground: oklch(0.8 0.016 90);
+    --accent: oklch(0.32 0.025 250);
+    --accent-foreground: oklch(0.96 0.01 90);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 12%);
+    --ring: oklch(0.78 0.11 170);
+
+    /* 药卡改成石板蓝灰，丢掉暗红 #401d1d；说明文字加亮，像灯开亮一档 */
+    --cabinet: oklch(0.34 0.02 250);
+    --cabinet-border: oklch(0.44 0.018 250);
+    --cabinet-muted: oklch(0.84 0.016 90);
+    --intel: oklch(0.8 0.11 170);
+    --rail: oklch(0.2 0.02 250);
+    --dock: oklch(0.22 0.02 250);
+    --exhibit: oklch(0.74 0.06 95);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.556 0 0);
+
+    /* 暗色库房里轨道几乎隐身，滑块是青灰细条，悬停才亮一点 */
+    --scrollbar-track: oklch(0.2 0.02 250 / 0.35);
+    --scrollbar-thumb: oklch(0.55 0.04 180 / 0.55);
+    --scrollbar-thumb-hover: oklch(0.78 0.11 170 / 0.85);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+
+  /* 页面底和字跟主题走，避免白底把暗色收藏室冲掉 */
+  /* overflow-x 锁死，窄屏横滑分类只在标签行里走，不把整页拽出屏幕 */
+  body {
+    @apply bg-background text-foreground;
+    overflow-x: hidden;
+    }
+
+  html {
+    @apply font-sans;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    }
+
+  /* 根节点也锁死宽度，避免横滑分类把整页撑出手机屏幕 */
+  #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    }
+}
+
+/* 全局滚动条：细圆条贴在边上，像库房门缝里的灯带，不再用系统那根大白条 */
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+
+  *::-webkit-scrollbar {
+    width: var(--scrollbar-size);
+    height: var(--scrollbar-size);
+  }
+
+  *::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
+
+/* 展位里的药轻轻上下晃，像还没换成 3D 时先用绳子吊着样品 */
+@keyframes exhibit-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-14px);
+  }
+}
