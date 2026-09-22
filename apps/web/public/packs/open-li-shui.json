@@ -1,0 +1,17 @@
+{
+  "id": "open-li-shui",
+  "name": "利水渗湿药",
+  "source": "从本室试用包拆出的利水渗湿药，下载后拖进导入窗即可。不是官方接口实时数据。",
+  "herbs": [
+    {
+      "name": "泽泻",
+      "pinyin": "zexie",
+      "categoryTag": "利水渗湿药",
+      "subclassTag": "利水消肿药",
+      "nature": "甘、淡，寒",
+      "meridians": "肾、膀胱经",
+      "functions": "利水渗湿，泄热，化浊降脂。",
+      "indications": "水肿，小便不利，痰饮眩晕，高脂血症。"
+    }
+  ]
+}

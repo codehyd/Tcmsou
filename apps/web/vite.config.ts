@@ -20,4 +20,14 @@ export default defineConfig({
       "@": path.resolve(configDir, "./src"),
     },
   },
+  server: {
+    proxy: {
+      // 浏览器直接找 symmap.org 会被拦住，开发服务替它去领药材表，像前台代取快递
+      "/symmap-static": {
+        target: "http://symmap.org",
+        changeOrigin: true,
+        rewrite: (requestPath) => requestPath.replace(/^\/symmap-static/, "/static"),
+      },
+    },
+  },
 });

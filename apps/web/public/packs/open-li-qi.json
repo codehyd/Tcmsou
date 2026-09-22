@@ -1,0 +1,27 @@
+{
+  "id": "open-li-qi",
+  "name": "理气药",
+  "source": "从本室试用包拆出的理气药，下载后拖进导入窗即可。不是官方接口实时数据。",
+  "herbs": [
+    {
+      "name": "陈皮",
+      "pinyin": "chenpi",
+      "categoryTag": "理气药",
+      "subclassTag": "理气药",
+      "nature": "苦、辛，温",
+      "meridians": "脾、肺经",
+      "functions": "理气健脾，燥湿化痰。",
+      "indications": "脘腹胀满，食少吐泻，咳嗽痰多，胸膈满闷。"
+    },
+    {
+      "name": "木香",
+      "pinyin": "muxiang",
+      "categoryTag": "理气药",
+      "subclassTag": "理气药",
+      "nature": "辛、苦，温",
+      "meridians": "脾、胃、大肠、三焦、胆经",
+      "functions": "行气止痛，健脾消食。",
+      "indications": "脘腹胀痛，泻痢后重，食积不消，不思饮食。"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "id": "open-jie-biao",
+  "name": "解表药",
+  "source": "从本室试用包拆出的解表药，下载后拖进导入窗即可。不是官方接口实时数据。",
+  "herbs": [
+    {
+      "name": "麻黄",
+      "pinyin": "mahuang",
+      "categoryTag": "解表药",
+      "subclassTag": "解表药",
+      "nature": "辛、微苦，温",
+      "meridians": "肺、膀胱经",
+      "functions": "发汗散寒，宣肺平喘，利水消肿。",
+      "indications": "风寒感冒，胸闷喘咳，支气管哮喘，水肿。"
+    },
+    {
+      "name": "桂枝",
+      "pinyin": "guizhi",
+      "categoryTag": "解表药",
+      "subclassTag": "发散风寒药",
+      "nature": "辛、甘，温",
+      "meridians": "心、肺、膀胱经",
+      "functions": "发汗解肌，温通经脉，助阳化气。",
+      "indications": "风寒感冒，脘腹冷痛，经闭痛经，关节痹痛。"
+    },
+    {
+      "name": "葛根",
+      "pinyin": "gegen",
+      "categoryTag": "解表药",
+      "subclassTag": "发散风热药",
+      "nature": "甘、辛，凉",
+      "meridians": "脾、胃、肺经",
+      "functions": "解肌退热，生津透疹，升阳止泻。",
+      "indications": "外感发热，项背强痛，麻疹不透，热痢，泄泻。"
+    },
+    {
+      "name": "紫苏",
+      "pinyin": "zisu",
+      "categoryTag": "解表药",
+      "subclassTag": "发散风寒药",
+      "nature": "辛，温",
+      "meridians": "肺、脾经",
+      "functions": "解表散寒，行气和胃。",
+      "indications": "风寒感冒，咳嗽呕恶，妊娠恶阻，鱼蟹中毒。"
+    },
+    {
+      "name": "荆芥",
+      "pinyin": "jingjie",
+      "categoryTag": "解表药",
+      "subclassTag": "发散风寒药",
+      "nature": "辛，微温",
+      "meridians": "肺、肝经",
+      "functions": "解表散风，透疹消疮。",
+      "indications": "感冒，头痛，麻疹，风疹，疮疡初起。"
+    },
+    {
+      "name": "菊花",
+      "pinyin": "juhua",
+      "categoryTag": "解表药",
+      "subclassTag": "发散风热药",
+      "nature": "辛、甘、苦，微寒",
+      "meridians": "肺、肝经",
+      "functions": "散风清热，平肝明目，清热解毒。",
+      "indications": "风热感冒，头痛眩晕，目赤肿痛，疮痈肿毒。"
+    }
+  ]
+}

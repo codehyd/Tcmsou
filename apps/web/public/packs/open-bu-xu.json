@@ -1,0 +1,27 @@
+{
+  "id": "open-bu-xu",
+  "name": "补虚药",
+  "source": "从本室试用包拆出的补虚药，下载后拖进导入窗即可。不是官方接口实时数据。",
+  "herbs": [
+    {
+      "name": "人参",
+      "pinyin": "renshen",
+      "categoryTag": "补虚药",
+      "subclassTag": "补气药",
+      "nature": "甘、微苦，微温",
+      "meridians": "脾、肺、心、肾经",
+      "functions": "大补元气，复脉固脱，补脾益肺，生津养血，安神益智。",
+      "indications": "体虚欲脱，肢冷脉微，脾虚食少，肺虚喘咳，津伤口渴。"
+    },
+    {
+      "name": "北沙参",
+      "pinyin": "beishashen",
+      "categoryTag": "补虚药",
+      "subclassTag": "补阴药",
+      "nature": "甘、微苦，微寒",
+      "meridians": "肺、胃经",
+      "functions": "养阴清肺，益胃生津。",
+      "indications": "肺热燥咳，劳嗽痰血，胃阴不足，热病津伤。"
+    }
+  ]
+}

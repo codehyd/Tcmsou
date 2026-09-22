@@ -1,0 +1,17 @@
+{
+  "id": "open-huo-xue",
+  "name": "活血化瘀药",
+  "source": "从本室试用包拆出的活血化瘀药，下载后拖进导入窗即可。不是官方接口实时数据。",
+  "herbs": [
+    {
+      "name": "红花",
+      "pinyin": "honghua",
+      "categoryTag": "活血化瘀药",
+      "subclassTag": "活血调经药",
+      "nature": "辛，温",
+      "meridians": "心、肝经",
+      "functions": "活血通经，散瘀止痛。",
+      "indications": "经闭，痛经，恶露不行，癥瘕痞块，跌扑损伤。"
+    }
+  ]
+}

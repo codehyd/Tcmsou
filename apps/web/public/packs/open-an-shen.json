@@ -1,0 +1,17 @@
+{
+  "id": "open-an-shen",
+  "name": "安神药",
+  "source": "从本室试用包拆出的安神药，下载后拖进导入窗即可。不是官方接口实时数据。",
+  "herbs": [
+    {
+      "name": "远志",
+      "pinyin": "yuanzhi",
+      "categoryTag": "安神药",
+      "subclassTag": "养心安神药",
+      "nature": "苦、辛，温",
+      "meridians": "心、肾、肺经",
+      "functions": "安神益智，交通心肾，祛痰，消肿。",
+      "indications": "心肾不交引起的失眠多梦，健忘惊悸，神志恍惚。"
+    }
+  ]
+}

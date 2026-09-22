@@ -1,0 +1,27 @@
+{
+  "id": "open-qing-re",
+  "name": "清热药",
+  "source": "从本室试用包拆出的清热药，下载后拖进导入窗即可。不是官方接口实时数据。",
+  "herbs": [
+    {
+      "name": "黄柏",
+      "pinyin": "huangbo",
+      "categoryTag": "清热药",
+      "subclassTag": "清热燥湿药",
+      "nature": "苦，寒",
+      "meridians": "肾、膀胱经",
+      "functions": "清热燥湿，泻火除蒸，解毒疗疮。",
+      "indications": "湿热泻痢，黄疸，带下，热淋，骨蒸劳热。"
+    },
+    {
+      "name": "连翘",
+      "pinyin": "lianqiao",
+      "categoryTag": "清热药",
+      "subclassTag": "清热解毒药",
+      "nature": "苦，微寒",
+      "meridians": "肺、心、小肠经",
+      "functions": "清热解毒，消肿散结，疏散风热。",
+      "indications": "痈疽，瘰疬，乳痈，热淋，温病初起。"
+    }
+  ]
+}

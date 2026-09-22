@@ -1,0 +1,17 @@
+{
+  "id": "open-xiao-shi",
+  "name": "消食药",
+  "source": "从本室试用包拆出的消食药，下载后拖进导入窗即可。不是官方接口实时数据。",
+  "herbs": [
+    {
+      "name": "神曲",
+      "pinyin": "shenqu",
+      "categoryTag": "消食药",
+      "subclassTag": "消食药",
+      "nature": "甘、辛，温",
+      "meridians": "脾、胃经",
+      "functions": "消食和胃。",
+      "indications": "饮食积滞，脘腹胀满，食少纳呆。"
+    }
+  ]
+}

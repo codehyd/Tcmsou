@@ -1,0 +1,17 @@
+{
+  "id": "open-hua-tan",
+  "name": "化痰止咳平喘药",
+  "source": "从本室试用包拆出的化痰止咳平喘药，下载后拖进导入窗即可。不是官方接口实时数据。",
+  "herbs": [
+    {
+      "name": "杏仁",
+      "pinyin": "xingren",
+      "categoryTag": "化痰止咳平喘药",
+      "subclassTag": "止咳平喘药",
+      "nature": "苦，微温；有小毒",
+      "meridians": "肺、大肠经",
+      "functions": "降气止咳平喘，润肠通便。",
+      "indications": "咳嗽气喘，胸满痰多，肠燥便秘。"
+    }
+  ]
+}
