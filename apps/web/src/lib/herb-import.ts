@@ -1,5 +1,6 @@
 import { HERB_CATEGORIES, HERB_CLASS_ALIASES, HERB_SUBCLASSES } from "@/data/categories";
 import { getDefaultSubclassId } from "@/data/herbs";
+import symmapHerbNotes from "@/data/symmap-herb-notes.json";
 import { formatHerbClassPath } from "@/lib/herb-catalog";
 import type {
   Herb,
@@ -50,11 +51,12 @@ export interface ImportDuplicate {
   diffs: ImportFieldKey[];
 }
 
-// 一包药拆完后的三堆：新货、撞名要审的、废票
+// 一包药拆完后的四堆：新货、撞名要审的、和本室一样的、废票
 export interface ParsedHerbImport {
   packName: string;
   fresh: Herb[];
   duplicates: ImportDuplicate[];
+  unchanged: Herb[];
   invalid: InvalidPackHerb[];
 }
 
@@ -296,7 +298,7 @@ function asHerbPack(value: unknown): HerbPack | null {
   };
 }
 
-// 读文件、拆三堆：新药直接能上架，撞名进审查，废票跟人说原因
+// 读文件、拆四堆：新药能上架，撞名进对照，完全一样的也留在清单上让人看见，废票跟人说原因
 export function parseHerbImport(raw: unknown, cabinet: Herb[]): ParsedHerbImport {
   const pack = asHerbPack(raw);
 
@@ -306,6 +308,7 @@ export function parseHerbImport(raw: unknown, cabinet: Herb[]): ParsedHerbImport
 
   const fresh: Herb[] = [];
   const duplicates: ImportDuplicate[] = [];
+  const unchanged: Herb[] = [];
   const invalid: InvalidPackHerb[] = [];
   const seen = new Set<string>();
 
@@ -340,7 +343,9 @@ export function parseHerbImport(raw: unknown, cabinet: Herb[]): ParsedHerbImport
 
     const diffs = listImportDiffs(existing, converted.herb);
 
+    // 字完全一样也留一行，不然人不知道这味药在表里、只是不用改柜
     if (diffs.length === 0) {
+      unchanged.push(existing);
       continue;
     }
 
@@ -355,6 +360,7 @@ export function parseHerbImport(raw: unknown, cabinet: Herb[]): ParsedHerbImport
     packName: pack.name?.trim() || "未命名药包",
     fresh,
     duplicates,
+    unchanged,
     invalid,
   };
 }
@@ -389,6 +395,7 @@ function cell(row: Record<string, unknown>, keys: string[]): string {
 }
 
 // 把 SymMap 的 SMHB 表收成本室药包：只留没被废弃的药材行
+// 功效、主治不在这张 Excel 里，按 Herb_id 去补注里取
 function herbPackFromSymMapRows(
   rows: Record<string, unknown>[],
 ): HerbPack {
@@ -409,14 +416,17 @@ function herbPackFromSymMapRows(
 
     const meridians = polishChineseList(cell(row, ["Meridians_Chinese", "meridians_chinese"]));
 
+    // 表上没有功效和主治。功效来自详情页中文，主治用关联的中医症状，空着就别编
+    const note = symmapHerbNotes[cell(row, ["Herb_id", "herb_id"]) as keyof typeof symmapHerbNotes];
+
     herbs.push({
       name,
       pinyin: cell(row, ["Pinyin_name", "pinyin_name"]).toLowerCase(),
       categoryTag: cell(row, ["Class_Chinese", "class_chinese"]),
       nature: polishChineseList(cell(row, ["Properties_Chinese", "properties_chinese"])),
       meridians: meridians && !meridians.endsWith("经") ? `${meridians}经` : meridians,
-      functions: cell(row, ["Function", "function"]),
-      indications: "",
+      functions: note?.functions ?? "",
+      indications: note?.indications ?? "",
     });
   }
 

@@ -1,26 +1,24 @@
 import { useEffect, useState, type ChangeEvent, type DragEvent } from "react";
 import { FileUp } from "lucide-react";
 
+import { ImportCompareTable } from "@/rooms/collection/components/ImportCompareTable";
 import { OPEN_HERB_SOURCES, type OpenHerbSource } from "@/data/public-herb-packs";
 import {
   dropZone,
-  fieldChoice,
   importDialog,
   packShelf,
   packShelfButton,
   packShelfHeader,
   packShelfList,
+  packShelfAction,
   packShelfRow,
   pickStep,
 } from "./styles";
 import { Button } from "@/components/ui/button";
 import {
-  getImportFieldValue,
-  IMPORT_FIELD_LABELS,
   mergeHerbByPicks,
   parseHerbImportFile,
   picksForSide,
-  type ImportDuplicate,
   type ParsedHerbImport,
 } from "@/lib/herb-import";
 import { useHerbCabinetStore } from "@/store/herb-cabinet";
@@ -32,7 +30,13 @@ interface ImportHerbDialogProps {
   onClose: () => void;
 }
 
-type ImportStep = "pick" | "preview" | "review";
+type ImportStep = "pick" | "compare";
+
+// 左下角正在领哪一份、领来干什么：只存盘，还是存完马上拆进预览
+type OpenSourceJob = {
+  id: string;
+  mode: "download" | "import";
+};
 
 // 收藏室的导入窗：左下角点开源药库就直接下载并导入，自己的文件也能拖进来；撞名的要对照后才入柜
 export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps) {
@@ -42,7 +46,6 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
   const [error, setError] = useState("");
   const [parsed, setParsed] = useState<ParsedHerbImport | null>(null);
   const [selectedFreshIds, setSelectedFreshIds] = useState<string[]>([]);
-  const [reviewIndex, setReviewIndex] = useState(0);
   const [reviewPicks, setReviewPicks] = useState<
     Record<number, Partial<Record<ImportFieldKey, ImportFieldPick>>>
   >({});
@@ -53,8 +56,8 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
   // 左下角开源药库开没开，像拉开供货名录才看见能直接进的表
   const [catalogOpen, setCatalogOpen] = useState(false);
 
-  // 正在下载哪一条，避免连点两下把同一张表领两遍
-  const [loadingSourceId, setLoadingSourceId] = useState<string | null>(null);
+  // 左下角正在领哪一份表，像货单还在路上就先别再打电话
+  const [loadingJob, setLoadingJob] = useState<OpenSourceJob | null>(null);
 
   // 开着窗才听 Esc，关上就别误伤列表页
   useEffect(() => {
@@ -93,11 +96,10 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
     setError("");
     setParsed(null);
     setSelectedFreshIds([]);
-    setReviewIndex(0);
     setReviewPicks({});
     setDragging(false);
     setCatalogOpen(false);
-    setLoadingSourceId(null);
+    setLoadingJob(null);
   }, [open]);
 
   // 窗开着时拦住整页的拖放，免得文件落到投放区外被浏览器当成打开新页
@@ -133,11 +135,10 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
       // 新药默认全勾，对照从第一味开始，投放灯先关掉
       setParsed(packed);
       setSelectedFreshIds(packed.fresh.map((herb) => herb.id));
-      setReviewIndex(0);
       setReviewPicks({});
       setError("");
       setDragging(false);
-      setStep("preview");
+      setStep("compare");
     } catch (caught) {
       // 拆不开就把原因贴回选文件那一页，别让人走进空预览
       const message = caught instanceof Error ? caught.message : "这份文件读不出来";
@@ -211,27 +212,61 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
     await importFile(file);
   }
 
-  // 点开源药库的一行：替人把表下载下来，马上拆进预览，不用先存到桌面再拖
-  async function importOpenSource(source: OpenHerbSource) {
-    // 同一条还在下载时别再领一次，像货单还没到就不要重复打电话
-    if (loadingSourceId) {
+  // 向开发服务要这份开源表，浏览器自己跨站会被拦住
+  async function fetchOpenSourceFile(source: OpenHerbSource) {
+    const response = await fetch(encodeURI(source.href));
+
+    if (!response.ok) {
+      throw new Error("这份开源表没下下来");
+    }
+
+    const blob = await response.blob();
+
+    return new File([blob], source.filename);
+  }
+
+  // 只把表存到电脑，不拆进本室，像先把货单复印带走
+  async function downloadOpenSource(source: OpenHerbSource) {
+    // 还在领别的表就先排队，避免两份文件抢同一个保存
+    if (loadingJob) {
       return;
     }
 
-    setLoadingSourceId(source.id);
+    setLoadingJob({ id: source.id, mode: "download" });
     setError("");
 
     try {
-      // 向开发服务要这份表，它再去开源站取，浏览器自己跨站会被拦住
-      const response = await fetch(encodeURI(source.href));
+      const file = await fetchOpenSourceFile(source);
 
-      if (!response.ok) {
-        throw new Error("这份开源表没下下来");
-      }
+      // 用临时地址点一下保存，存完就丢掉，免得占着内存
+      const url = URL.createObjectURL(file);
+      const link = document.createElement("a");
 
-      // 下到的内容装成一份文件，后面的拆包流程和拖进来的表走同一条路
-      const blob = await response.blob();
-      const file = new File([blob], source.filename);
+      link.href = url;
+      link.download = file.name;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "这份开源表没下下来";
+
+      setError(message);
+    } finally {
+      setLoadingJob(null);
+    }
+  }
+
+  // 点「下载并导入」：表领下来马上拆进预览，不用先存到桌面再拖
+  async function importOpenSource(source: OpenHerbSource) {
+    // 同一条还在下载时别再领一次，像货单还没到就不要重复打电话
+    if (loadingJob) {
+      return;
+    }
+
+    setLoadingJob({ id: source.id, mode: "import" });
+    setError("");
+
+    try {
+      const file = await fetchOpenSourceFile(source);
 
       setCatalogOpen(false);
       await importFile(file);
@@ -242,7 +277,7 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
       setError(message);
       setStep("pick");
     } finally {
-      setLoadingSourceId(null);
+      setLoadingJob(null);
     }
   }
 
@@ -257,45 +292,27 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
     });
   }
 
-  // 当前这味药所有差异栏勾同一边，省得一栏栏点
-  function setCurrentPicks(side: ImportFieldPick) {
-    if (!parsed) {
-      return;
-    }
-
-    const diffs = parsed.duplicates[reviewIndex]?.diffs ?? [];
-
+  // 只改一味药的一栏：点本室或导入，像左右两张纸条里留下一张
+  function pickField(index: number, key: ImportFieldKey, side: ImportFieldPick) {
     setReviewPicks((current) => ({
       ...current,
-      [reviewIndex]: picksForSide(diffs, side),
-    }));
-  }
-
-  // 只改一栏：性味用本室、功效用药包，像左右说明书各撕半页
-  function pickField(key: ImportFieldKey, side: ImportFieldPick) {
-    setReviewPicks((current) => ({
-      ...current,
-      [reviewIndex]: {
-        ...current[reviewIndex],
+      [index]: {
+        ...current[index],
         [key]: side,
       },
     }));
   }
 
-  // 从当前这味起，后面重复的全用同一边，避免十几味逐个点完
-  function fillRemaining(side: ImportFieldPick) {
+  // 所有要对照的药一次性站到同一边，省得一栏栏点
+  function fillAll(side: ImportFieldPick) {
     if (!parsed) {
       return;
     }
 
-    setReviewPicks((current) => {
-      const next = { ...current };
+    setReviewPicks(() => {
+      const next: Record<number, Partial<Record<ImportFieldKey, ImportFieldPick>>> = {};
 
       parsed.duplicates.forEach((item, index) => {
-        if (index < reviewIndex) {
-          return;
-        }
-
         next[index] = picksForSide(item.diffs, side);
       });
 
@@ -330,8 +347,10 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
     onClose();
   }
 
-  const duplicate = parsed?.duplicates[reviewIndex];
-  const currentPicks = reviewPicks[reviewIndex] ?? {};
+  const nothingToWrite =
+    parsed !== null &&
+    parsed.duplicates.length === 0 &&
+    (parsed.fresh.length === 0 || selectedFreshIds.length === 0);
 
   return (
     <div className={importDialog.backdrop()}>
@@ -342,12 +361,14 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
         onClick={onClose}
       />
 
-      <div className={importDialog.sheet()}>
+      <div className={importDialog.sheet({ wide: step === "compare" })}>
         <div className={importDialog.header()}>
           <h2 className={importDialog.title()}>导入</h2>
 
           <p className={importDialog.hint()}>
-            默认货架不动。左下角点开源药库可直接导入；自己的 JSON 或 Excel 也能拖进来。药名重复的要对照后才写入。
+            {step === "compare"
+              ? "整包都在表里。新药勾选后写入；字不一样的格子点一下，决定留本室还是用导入。"
+              : "默认货架不动。左下角点开源药库可直接导入；自己的 JSON 或 Excel 也能拖进来。药名重复的要对照后才写入。"}
           </p>
         </div>
 
@@ -363,26 +384,13 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
             />
           ) : null}
 
-          {step === "preview" && parsed ? (
-            <PreviewStep
+          {step === "compare" && parsed ? (
+            <ImportCompareTable
               parsed={parsed}
               selectedFreshIds={selectedFreshIds}
+              reviewPicks={reviewPicks}
               onToggleFresh={toggleFresh}
-              onSelectAllFresh={() =>
-                setSelectedFreshIds(parsed.fresh.map((herb) => herb.id))
-              }
-              onClearFresh={() => setSelectedFreshIds([])}
-            />
-          ) : null}
-
-          {step === "review" && parsed && duplicate ? (
-            <ReviewStep
-              parsed={parsed}
-              duplicate={duplicate}
-              reviewIndex={reviewIndex}
-              picks={currentPicks}
               onPickField={pickField}
-              onPickAll={setCurrentPicks}
             />
           ) : null}
         </div>
@@ -390,8 +398,11 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
         <div className={importDialog.footer()}>
           {catalogOpen ? (
             <PackShelf
-              loadingSourceId={loadingSourceId}
+              loadingJob={loadingJob}
               onClose={() => setCatalogOpen(false)}
+              onDownload={(source) => {
+                void downloadOpenSource(source);
+              }}
               onImport={(source) => {
                 void importOpenSource(source);
               }}
@@ -409,71 +420,27 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
           </button>
 
           <div className={importDialog.footerActions()}>
-          <Button type="button" variant="ghost" onClick={onClose}>
-            取消
-          </Button>
-
-          {step === "preview" && parsed && parsed.duplicates.length > 0 ? (
-            <Button type="button" variant="outline" onClick={() => setStep("review")}>
-              去对照重复（{parsed.duplicates.length}）
+            <Button type="button" variant="ghost" onClick={onClose}>
+              取消
             </Button>
-          ) : null}
 
-          {step === "preview" && parsed && parsed.duplicates.length === 0 ? (
-            <Button
-              type="button"
-              onClick={commitImport}
-              disabled={parsed.fresh.length > 0 && selectedFreshIds.length === 0}
-            >
-              写入展柜
-            </Button>
-          ) : null}
-
-          {step === "review" && parsed ? (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fillRemaining("local")}
-              >
+            {step === "compare" && parsed && parsed.duplicates.length > 0 ? (
+              <Button type="button" variant="outline" onClick={() => fillAll("local")}>
                 其余留本室
               </Button>
+            ) : null}
 
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fillRemaining("incoming")}
-              >
+            {step === "compare" && parsed && parsed.duplicates.length > 0 ? (
+              <Button type="button" variant="outline" onClick={() => fillAll("incoming")}>
                 其余用导入
               </Button>
+            ) : null}
 
-              <Button
-                type="button"
-                variant="outline"
-                disabled={reviewIndex === 0}
-                onClick={() => setReviewIndex((index) => Math.max(0, index - 1))}
-              >
-                上一味
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                disabled={reviewIndex >= parsed.duplicates.length - 1}
-                onClick={() =>
-                  setReviewIndex((index) =>
-                    Math.min(parsed.duplicates.length - 1, index + 1),
-                  )
-                }
-              >
-                下一味
-              </Button>
-
-              <Button type="button" onClick={commitImport}>
+            {step === "compare" && parsed ? (
+              <Button type="button" onClick={commitImport} disabled={nothingToWrite}>
                 写入展柜
               </Button>
-            </>
-          ) : null}
+            ) : null}
           </div>
         </div>
       </div>
@@ -481,54 +448,63 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
   );
 }
 
-// 左下角拉出的开源药库：列出能直接下载并导入的药材表
+// 左下角拉出的名单：只列药表，每份旁边是「下载并导入」和「下载」
 function PackShelf({
-  loadingSourceId,
+  loadingJob,
   onClose,
+  onDownload,
   onImport,
 }: {
-  loadingSourceId: string | null;
+  loadingJob: OpenSourceJob | null;
   onClose: () => void;
+  onDownload: (source: OpenHerbSource) => void;
   onImport: (source: OpenHerbSource) => void;
 }) {
   return (
     <div className={packShelf()}>
       <div className={packShelfHeader()}>
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm text-foreground">开源药库</p>
+        <p>重名的会进对照。</p>
 
-          <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={onClose}>
-            收起
-          </button>
-        </div>
-
-        <p className="mt-1 text-xs text-muted-foreground">
-          点一条就下载并导入。和本室重名的会进对照。
-        </p>
+        <button type="button" className="hover:text-foreground" onClick={onClose}>
+          收起
+        </button>
       </div>
 
       <ul className={packShelfList()}>
-        {OPEN_HERB_SOURCES.map((source) => (
-          <li key={source.id} className="border-b border-white/8 last:border-b-0">
-            {/* 整行都是按钮，点下去就领这张表，不用再另存再拖 */}
-            <button
-              type="button"
-              className={packShelfRow()}
-              disabled={loadingSourceId !== null}
-              onClick={() => onImport(source)}
-            >
+        {OPEN_HERB_SOURCES.map((source) => {
+          const busy = loadingJob?.id === source.id;
+
+          return (
+            <li key={source.id} className={packShelfRow()}>
               <div className="min-w-0">
                 <p className="truncate text-sm text-foreground">{source.name}</p>
 
                 <p className="truncate text-xs text-muted-foreground">{source.detail}</p>
               </div>
 
-              <span className="shrink-0 text-xs text-intel">
-                {loadingSourceId === source.id ? "正在下载" : "导入"}
-              </span>
-            </button>
-          </li>
-        ))}
+              <div className="flex shrink-0 items-center gap-3">
+                {/* 两个钮分开：一个领进来对照，一个只把文件存到电脑 */}
+                <button
+                  type="button"
+                  className={packShelfAction()}
+                  disabled={loadingJob !== null}
+                  onClick={() => onImport(source)}
+                >
+                  {busy && loadingJob.mode === "import" ? "正在下载" : "下载并导入"}
+                </button>
+
+                <button
+                  type="button"
+                  className={packShelfAction()}
+                  disabled={loadingJob !== null}
+                  onClick={() => onDownload(source)}
+                >
+                  {busy && loadingJob.mode === "download" ? "正在下载" : "下载"}
+                </button>
+              </div>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -584,187 +560,3 @@ function PickStep({
   );
 }
 
-// 拆包预览：新药可勾选，撞名的要去下一页对照，废票把原因列出来
-function PreviewStep({
-  parsed,
-  selectedFreshIds,
-  onToggleFresh,
-  onSelectAllFresh,
-  onClearFresh,
-}: {
-  parsed: ParsedHerbImport;
-  selectedFreshIds: string[];
-  onToggleFresh: (id: string) => void;
-  onSelectAllFresh: () => void;
-  onClearFresh: () => void;
-}) {
-  return (
-    <div className="flex flex-col gap-4">
-      <p className="text-sm">
-        药包「{parsed.packName}」：新增 {parsed.fresh.length} 味，需对照{" "}
-        {parsed.duplicates.length} 味
-        {parsed.invalid.length > 0 ? `，读不出 ${parsed.invalid.length} 味` : ""}。
-      </p>
-
-      {parsed.invalid.length > 0 ? (
-        <div>
-          <p className="text-xs text-muted-foreground">读不出的条目</p>
-
-          <ul className="mt-1 space-y-1 text-sm text-destructive">
-            {parsed.invalid.map((item) => (
-              <li key={`${item.name}-${item.reason}`}>
-                {item.name}：{item.reason}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {parsed.fresh.length > 0 ? (
-        <div>
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs text-muted-foreground">新药（勾选后写入）</p>
-
-            <button
-              type="button"
-              className="text-xs text-intel hover:underline"
-              onClick={() => {
-                if (selectedFreshIds.length === parsed.fresh.length) {
-                  onClearFresh();
-                  return;
-                }
-
-                onSelectAllFresh();
-              }}
-            >
-              {selectedFreshIds.length === parsed.fresh.length ? "取消全选" : "全选新增"}
-            </button>
-          </div>
-
-          <ul className="mt-2 max-h-48 space-y-1.5 overflow-y-auto">
-            {parsed.fresh.map((herb) => (
-              <li key={herb.id}>
-                <label className="flex min-w-0 items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={selectedFreshIds.includes(herb.id)}
-                    onChange={() => onToggleFresh(herb.id)}
-                  />
-
-                  <span className="truncate">{herb.name}</span>
-
-                  <span className="truncate text-xs text-muted-foreground">
-                    {getImportFieldValue(herb, "class")}
-                  </span>
-                </label>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {parsed.duplicates.length > 0 ? (
-        <p className="text-xs text-muted-foreground">
-          与本室药名相同 {parsed.duplicates.length} 味，请点「去对照重复」。
-        </p>
-      ) : null}
-
-      {parsed.fresh.length === 0 && parsed.duplicates.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          没有新药，也没有需要对照的差异。
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-// 左右对照一栏栏勾：左边本室，右边药包，点亮的那张才写进柜
-function ReviewStep({
-  parsed,
-  duplicate,
-  reviewIndex,
-  picks,
-  onPickField,
-  onPickAll,
-}: {
-  parsed: ParsedHerbImport;
-  duplicate: ImportDuplicate;
-  reviewIndex: number;
-  picks: Partial<Record<ImportFieldKey, ImportFieldPick>>;
-  onPickField: (key: ImportFieldKey, side: ImportFieldPick) => void;
-  onPickAll: (side: ImportFieldPick) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm">
-          对照 {reviewIndex + 1}/{parsed.duplicates.length}：{duplicate.existing.name}
-        </p>
-
-        <div className="flex gap-2">
-          <Button type="button" size="sm" variant="outline" onClick={() => onPickAll("local")}>
-            本室全部
-          </Button>
-
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => onPickAll("incoming")}
-          >
-            导入全部
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-[5.5rem_1fr_1fr] gap-2 text-xs text-muted-foreground">
-        <span>栏目</span>
-        <span>本室</span>
-        <span>药包</span>
-      </div>
-
-      {duplicate.diffs.map((key) => {
-        const selected = picks[key] ?? "local";
-
-        return (
-          <div key={key} className="grid grid-cols-[5.5rem_1fr_1fr] gap-2">
-            <p className="pt-2 text-xs text-muted-foreground">{IMPORT_FIELD_LABELS[key]}</p>
-
-            <FieldChoice
-              selected={selected === "local"}
-              value={getImportFieldValue(duplicate.existing, key)}
-              onClick={() => onPickField(key, "local")}
-            />
-
-            <FieldChoice
-              selected={selected === "incoming"}
-              value={getImportFieldValue(duplicate.incoming, key)}
-              onClick={() => onPickField(key, "incoming")}
-            />
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// 对照表上的一格说明书，点它等于选用这一边的字
-function FieldChoice({
-  value,
-  selected,
-  onClick,
-}: {
-  value: string;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={fieldChoice({ selected })}
-    >
-      {value || "（空）"}
-    </button>
-  );
-}

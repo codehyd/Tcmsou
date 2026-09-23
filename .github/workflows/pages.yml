@@ -1,0 +1,66 @@
+# 推到 main 就自动把前端打包，送到 GitHub Pages，像把做好的展柜搬进展厅
+name: 发布前端到 GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# 只给构建读代码、给部署写 Pages，避免流水线权限过大
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 连续推送时只留最新一次，免得两趟搬家挤在同一扇门
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取出仓库
+        uses: actions/checkout@v4
+
+      - name: 准备 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.13.1
+
+      - name: 准备 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+
+      - name: 安装依赖
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile
+
+      - name: 构建静态站点
+        working-directory: apps/web
+        run: pnpm build
+
+      # 刷新 /collection 这种前端路由时，Pages 找不到真实文件，会拿出 404.html；内容和首页一样，路由才能接着走
+      - name: 复制首页当备用门
+        working-directory: apps/web
+        run: cp dist/index.html dist/404.html
+
+      - name: 上传构建结果
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 部署到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

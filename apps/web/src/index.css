@@ -221,6 +221,23 @@
   *::-webkit-scrollbar-corner {
     background: transparent;
   }
+
+  /* 能点的都换成手型，像门把手；灰掉的禁止再戳。放在底层，下载中的等待光标还能盖上来 */
+  button:not(:disabled),
+  a[href],
+  label,
+  select,
+  summary,
+  input[type="checkbox"],
+  input[type="radio"],
+  [role="button"]:not([aria-disabled="true"]),
+  [role="option"]:not([data-disabled]) {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
 }
 
 /* 展位里的药轻轻上下晃，像还没换成 3D 时先用绳子吊着样品 */
