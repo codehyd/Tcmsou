@@ -138,10 +138,16 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
       // 把这份表交给拆包员，成功就摊开预览桌
       const packed = await parseHerbImportFile(file, herbs);
 
-      // 新药默认全勾，对照从第一味开始，投放灯先关掉
+      // 新药默认全勾。撞名的格子先站到导入这边，不点的话写入和导出才会带上新说明书，而不是教材原文
+      const incomingPicks: Record<number, Partial<Record<ImportFieldKey, ImportFieldPick>>> = {};
+
+      packed.duplicates.forEach((item, index) => {
+        incomingPicks[index] = picksForSide(item.diffs, "incoming");
+      });
+
       setParsed(packed);
       setSelectedFreshIds(packed.fresh.map((herb) => herb.id));
-      setReviewPicks({});
+      setReviewPicks(incomingPicks);
       setError("");
       setDragging(false);
       setStep("compare");
@@ -326,7 +332,7 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
     });
   }
 
-  // 勾完的新药入活页，对照完的教材盖修订；没勾的栏目默认留本室
+  // 勾上的新药入活页。撞名的格子若没改回本室，就用导入的字盖上去，导出才不会只剩教材原文
   function commitImport() {
     if (!parsed) {
       return;
@@ -373,7 +379,7 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
 
           <p className={importDialog.hint()}>
             {step === "compare"
-              ? "整包都在表里。新药勾选后写入；字不一样的格子点一下，决定留本室还是用导入。"
+              ? "整包都在表里。新药默认勾上；字不一样的格子先用导入，点一下可以改回本室。"
               : narrow
                 ? "点开源药库可直接导入，或点上方选择自己的 JSON / Excel。药名重复的要对照后才写入。"
                 : "默认货架不动。左下角点开源药库可直接导入；自己的 JSON 或 Excel 也能拖进来。药名重复的要对照后才写入。"}

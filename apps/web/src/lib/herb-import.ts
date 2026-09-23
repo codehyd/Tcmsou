@@ -480,7 +480,18 @@ export async function parseHerbImportFile(
   throw new Error("请选择 JSON，或 SymMap 下载的 SMHB Excel");
 }
 
-// 把当前货架收成药包，导出后再导入还能对照
+// 柜门和抽屉的中文签，导出文件靠它认章，不只有 jie_biao 这种内部编号
+function classTags(herb: Herb) {
+  const category = HERB_CATEGORIES.find((item) => item.id === herb.categoryId);
+  const subclass = HERB_SUBCLASSES.find((item) => item.id === herb.subclassId);
+
+  return {
+    categoryTag: category?.tag,
+    subclassTag: subclass?.tag,
+  };
+}
+
+// 把当前货架整柜收成药包：教材、后导入的新药、盖过章的修订都在里面
 export function buildHerbPackFromCabinet(herbs: Herb[]): HerbPack {
   return {
     id: "cabinet-export",
@@ -489,6 +500,7 @@ export function buildHerbPackFromCabinet(herbs: Herb[]): HerbPack {
     herbs: herbs.map((herb) => ({
       name: herb.name,
       pinyin: herb.pinyin,
+      ...classTags(herb),
       categoryId: herb.categoryId,
       subclassId: herb.subclassId,
       nature: herb.nature,
