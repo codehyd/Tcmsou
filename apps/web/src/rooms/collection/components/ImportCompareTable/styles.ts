@@ -1,16 +1,22 @@
 import { cva } from "class-variance-authority";
 
-// 整包对照表的样式：上面是筛子，下面是能横竖滚的大表
+// 整包对照表的样式：宽屏是能横滚的大表，手机改成一张张卡片
 
 // 表占满导入窗剩下的高度，像一张摊开的进货单
 export const compareTable = {
   root: cva("flex min-h-0 flex-1 flex-col gap-3"),
 
-  // 状态筛子和药名搜索并排，窄屏再换行
-  toolbar: cva("flex flex-wrap items-center gap-2"),
+  // 手机上筛子一行、搜索占满下一行；宽屏再并排
+  toolbar: cva("flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center"),
 
-  // 点哪个状态，就像把进货单翻到那一叠
-  filter: cva("rounded-sm border px-2 py-1 text-xs", {
+  // 四个状态签可以换行，别挤出屏幕
+  filters: cva("flex flex-wrap gap-2"),
+
+  // 搜药名。手机拉满好点，宽屏缩到工具条右边
+  search: cva("h-11 w-full md:ml-auto md:h-8 md:w-40"),
+
+  // 点哪个状态，就像把进货单翻到那一叠。手机把点击区加高
+  filter: cva("rounded-sm border px-2.5 py-2 text-xs md:px-2 md:py-1", {
     variants: {
       active: {
         true: "border-intel/55 bg-intel/10 text-foreground",
@@ -62,8 +68,33 @@ export const compareTable = {
     },
   }),
 
-  // 差异格里的一边：点中的亮，没点的暗，像两张纸条叠着选一张
-  side: cva("rounded-sm border px-2 py-1.5 text-left text-xs leading-relaxed break-words", {
+  // 手机上一味药一张卡，字段往下排，不用横着滑整张表
+  card: cva("border-b border-white/15 bg-background px-3 py-3 text-sm", {
+    variants: {
+      quiet: {
+        true: "text-muted-foreground",
+        false: "text-foreground",
+      },
+    },
+    defaultVariants: {
+      quiet: false,
+    },
+  }),
+
+  // 卡片抬头：勾、药名、状态签并排
+  cardHead: cva("flex items-start gap-3"),
+
+  // 状态签缩在右上角，不跟药名抢一行
+  cardStatus: cva("shrink-0 pt-0.5 text-xs text-muted-foreground"),
+
+  // 说明书字段跟在药名下面，一行一个，不用横着找列
+  cardFields: cva("mt-3 grid gap-3"),
+
+  // 字段小标题，告诉人这一格是性味还是功效
+  fieldLabel: cva("mb-1 text-xs text-muted-foreground"),
+
+  // 差异格里的一边：点中的亮，没点的暗，像两张纸条叠着选一张。手机把纸条加高好点
+  side: cva("rounded-sm border px-2 py-2 text-left text-xs leading-relaxed break-words md:py-1.5", {
     variants: {
       selected: {
         true: "border-intel/55 bg-intel/10 text-foreground",

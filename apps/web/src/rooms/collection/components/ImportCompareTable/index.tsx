@@ -7,6 +7,7 @@ import {
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 import { compareTable } from "./styles";
+import { useNarrowScreen } from "@/lib/use-narrow-screen";
 import { Input } from "@/components/ui/input";
 import {
   getImportFieldValue,
@@ -113,6 +114,9 @@ export function ImportCompareTable({
 }: ImportCompareTableProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // 手机装不下横表，改成一张张卡片；宽屏才摊开原来的大表
+  const narrow = useNarrowScreen();
+
   // 记下筛的是哪一叠，像进货单上的分页签，默认看全部
   const [statusFilter, setStatusFilter] = useState<RowStatus | "all">("all");
 
@@ -198,7 +202,8 @@ export function ImportCompareTable({
   const virtualizer = useVirtualizer({
     count: tableRows.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => 96,
+    // 卡片比表行高得多，先按这个估，真高度量完再校正，避免滚动条一下子跳很远
+    estimateSize: () => (narrow ? 280 : 96),
     overscan: 8,
     measureElement: (element) => element.getBoundingClientRect().height,
   });
@@ -228,26 +233,57 @@ export function ImportCompareTable({
       ) : null}
 
       <div className={compareTable.toolbar()}>
-        {(Object.keys(STATUS_LABEL) as Array<RowStatus | "all">).map((status) => (
-          <button
-            key={status}
-            type="button"
-            className={compareTable.filter({ active: statusFilter === status })}
-            onClick={() => setStatusFilter(status)}
-          >
-            {STATUS_LABEL[status]} {counts[status]}
-          </button>
-        ))}
+        <div className={compareTable.filters()}>
+          {(Object.keys(STATUS_LABEL) as Array<RowStatus | "all">).map((status) => (
+            <button
+              key={status}
+              type="button"
+              className={compareTable.filter({ active: statusFilter === status })}
+              onClick={() => setStatusFilter(status)}
+            >
+              {STATUS_LABEL[status]} {counts[status]}
+            </button>
+          ))}
+        </div>
 
         <Input
           value={query}
           placeholder="搜药名"
-          className="ml-auto w-40"
+          className={compareTable.search()}
           onChange={(event) => setQuery(event.target.value)}
         />
       </div>
 
       <div ref={scrollRef} className={compareTable.scroller()}>
+        {/* 窄屏一张卡一味药；宽屏才铺那张要横滑的大表 */}
+        {narrow ? (
+          <div className="relative" style={{ height: virtualizer.getTotalSize() }}>
+            {virtualizer.getVirtualItems().map((virtualRow) => {
+              const row = tableRows[virtualRow.index];
+
+              if (!row) {
+                return null;
+              }
+
+              return (
+                <div
+                  key={row.id}
+                  data-index={virtualRow.index}
+                  ref={virtualizer.measureElement}
+                  className={compareTable.card({ quiet: row.original.status === "unchanged" })}
+                  style={{
+                    position: "absolute",
+                    top: virtualRow.start,
+                    left: 0,
+                    width: "100%",
+                  }}
+                >
+                  <MobileImportCard row={row.original} meta={table.options.meta as ImportTableMeta} />
+                </div>
+              );
+            })}
+          </div>
+        ) : (
         <div className="min-w-[78rem]">
           <div className={`${compareTable.track()} ${compareTable.head()}`}>
             {table.getHeaderGroups().flatMap((group) =>
@@ -316,8 +352,41 @@ export function ImportCompareTable({
             })}
           </div>
         </div>
+        )}
       </div>
     </div>
+  );
+}
+
+// 手机上的一味药：勾和名字在抬头，性味功效往下排，不用横着滑整张大表
+function MobileImportCard({ row, meta }: { row: ImportSheetRow; meta: ImportTableMeta }) {
+  return (
+    <>
+      <div className={compareTable.cardHead()}>
+        <RowCheck row={row} meta={meta} />
+
+        {/* 点药名就拨勾，和无变化的药点了也不动，免得误触 */}
+        <div
+          className={row.status === "unchanged" ? "min-w-0 flex-1" : "min-w-0 flex-1 cursor-pointer"}
+          onClick={row.status !== "unchanged" ? () => toggleSheetRow(row, meta) : undefined}
+        >
+          <NameCell row={row} meta={meta} />
+        </div>
+
+        <span className={compareTable.cardStatus()}>{STATUS_LABEL[row.status]}</span>
+      </div>
+
+      {/* 性味、归经这些说明书往下排，一栏一个标题 */}
+      <div className={compareTable.cardFields()}>
+        {SHEET_FIELDS.map((field) => (
+          <div key={field}>
+            <p className={compareTable.fieldLabel()}>{IMPORT_FIELD_LABELS[field]}</p>
+
+            <FieldCell row={row} field={field} meta={meta} />
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -365,7 +434,7 @@ function RowCheck({ row, meta }: { row: ImportSheetRow; meta: ImportTableMeta })
     <input
       ref={boxRef}
       type="checkbox"
-      className="mt-1 size-4"
+      className="mt-1 size-5 md:size-4"
       checked={choice === "on"}
       onChange={() => toggleSheetRow(row, meta)}
       aria-label={row.status === "fresh" ? `写入${row.name}` : `整行改用导入 ${row.name}`}

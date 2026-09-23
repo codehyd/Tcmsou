@@ -3,14 +3,17 @@ import { FileUp } from "lucide-react";
 
 import { ImportCompareTable } from "@/rooms/collection/components/ImportCompareTable";
 import { OPEN_HERB_SOURCES, type OpenHerbSource } from "@/data/public-herb-packs";
+import { useNarrowScreen } from "@/lib/use-narrow-screen";
 import {
   dropZone,
   importDialog,
   packShelf,
   packShelfButton,
   packShelfHeader,
+  packShelfClose,
   packShelfList,
   packShelfAction,
+  packShelfActions,
   packShelfRow,
   pickStep,
 } from "./styles";
@@ -41,6 +44,9 @@ type OpenSourceJob = {
 // 收藏室的导入窗：左下角点开源药库就直接下载并导入，自己的文件也能拖进来；撞名的要对照后才入柜
 export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps) {
   const applyHerbImport = useHerbCabinetStore((state) => state.applyHerbImport);
+
+  // 手机没有拖文件，说明改成点按，免得对着虚线框发愣
+  const narrow = useNarrowScreen();
 
   const [step, setStep] = useState<ImportStep>("pick");
   const [error, setError] = useState("");
@@ -368,7 +374,9 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
           <p className={importDialog.hint()}>
             {step === "compare"
               ? "整包都在表里。新药勾选后写入；字不一样的格子点一下，决定留本室还是用导入。"
-              : "默认货架不动。左下角点开源药库可直接导入；自己的 JSON 或 Excel 也能拖进来。药名重复的要对照后才写入。"}
+              : narrow
+                ? "点开源药库可直接导入，或点上方选择自己的 JSON / Excel。药名重复的要对照后才写入。"
+                : "默认货架不动。左下角点开源药库可直接导入；自己的 JSON 或 Excel 也能拖进来。药名重复的要对照后才写入。"}
           </p>
         </div>
 
@@ -419,29 +427,49 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
             开源药库
           </button>
 
-          <div className={importDialog.footerActions()}>
-            <Button type="button" variant="ghost" onClick={onClose}>
-              取消
-            </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className={importDialog.cancelAction()}
+            onClick={onClose}
+          >
+            取消
+          </Button>
 
-            {step === "compare" && parsed && parsed.duplicates.length > 0 ? (
-              <Button type="button" variant="outline" onClick={() => fillAll("local")}>
-                其余留本室
-              </Button>
-            ) : null}
+          {step === "compare" && parsed ? (
+            <div className={importDialog.footerActions()}>
+              {parsed.duplicates.length > 0 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={importDialog.footerAction({ span: "half" })}
+                  onClick={() => fillAll("local")}
+                >
+                  其余留本室
+                </Button>
+              ) : null}
 
-            {step === "compare" && parsed && parsed.duplicates.length > 0 ? (
-              <Button type="button" variant="outline" onClick={() => fillAll("incoming")}>
-                其余用导入
-              </Button>
-            ) : null}
+              {parsed.duplicates.length > 0 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={importDialog.footerAction({ span: "half" })}
+                  onClick={() => fillAll("incoming")}
+                >
+                  其余用导入
+                </Button>
+              ) : null}
 
-            {step === "compare" && parsed ? (
-              <Button type="button" onClick={commitImport} disabled={nothingToWrite}>
+              <Button
+                type="button"
+                className={importDialog.footerAction({ span: "full" })}
+                onClick={commitImport}
+                disabled={nothingToWrite}
+              >
                 写入展柜
               </Button>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
@@ -465,7 +493,7 @@ function PackShelf({
       <div className={packShelfHeader()}>
         <p>重名的会进对照。</p>
 
-        <button type="button" className="hover:text-foreground" onClick={onClose}>
+        <button type="button" className={packShelfClose()} onClick={onClose}>
           收起
         </button>
       </div>
@@ -482,7 +510,7 @@ function PackShelf({
                 <p className="truncate text-xs text-muted-foreground">{source.detail}</p>
               </div>
 
-              <div className="flex shrink-0 items-center gap-3">
+              <div className={packShelfActions()}>
                 {/* 两个钮分开：一个领进来对照，一个只把文件存到电脑 */}
                 <button
                   type="button"
@@ -526,6 +554,9 @@ function PickStep({
   onDragLeave: (event: DragEvent<HTMLElement>) => void;
   onDrop: (event: DragEvent<HTMLElement>) => void;
 }) {
+  // 手机没有拖文件这回事，文案改成点按，免得人对着虚线框发愣
+  const narrow = useNarrowScreen();
+
   return (
     <div className={pickStep()}>
       {/* 投放台占满窗口，拖文件进来或点一下开选单 */}
@@ -541,10 +572,12 @@ function PickStep({
         <FileUp className="size-10 shrink-0" aria-hidden />
 
         <span className="text-base text-foreground">
-          {dragging ? "松开即可导入" : "把文件拖到这里"}
+          {dragging ? "松开即可导入" : narrow ? "点这里选择文件" : "把文件拖到这里"}
         </span>
 
-        <span className="text-xs">JSON 或 SMHB Excel，也可点击选择</span>
+        <span className="text-xs">
+          {narrow ? "JSON 或 SMHB Excel" : "JSON 或 SMHB Excel，也可点击选择"}
+        </span>
 
         {/* 真选文件的暗门，点投放台会走到这里，拖放则不经过它免得抢事件 */}
         <input
