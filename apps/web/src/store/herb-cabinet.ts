@@ -64,6 +64,17 @@ function normalizeStoredHerb(record: Herb, origin: Herb["origin"]): Herb {
     subclassId: resolveSubclassId(categoryId, record.subclassId),
     image: record.image ?? null,
     origin: record.origin ?? origin,
+    // 旧账本没有出处就空着；有名字才留下，网址必须是网页，避免脏数据点出去
+    source:
+      record.origin === "builtin" || !record.source?.label
+        ? undefined
+        : {
+            label: record.source.label,
+            url:
+              typeof record.source.url === "string" && /^https?:\/\//i.test(record.source.url)
+                ? record.source.url
+                : undefined,
+          },
   };
 }
 

@@ -1,10 +1,11 @@
-import { useEffect, useState, type ChangeEvent, type DragEvent } from "react";
-import { FileUp } from "lucide-react";
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import { FileUp, LoaderCircle } from "lucide-react";
 
 import { ImportCompareTable } from "@/rooms/collection/components/ImportCompareTable";
 import { OPEN_HERB_SOURCES, type OpenHerbSource } from "@/data/public-herb-packs";
 import { useNarrowScreen } from "@/lib/use-narrow-screen";
 import {
+  busyPanel,
   dropZone,
   importDialog,
   packShelf,
@@ -16,6 +17,7 @@ import {
   packShelfActions,
   packShelfRow,
   pickStep,
+  settledPanel,
 } from "./styles";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +41,12 @@ type ImportStep = "pick" | "compare";
 type OpenSourceJob = {
   id: string;
   mode: "download" | "import";
+  phase: "download" | "read";
+};
+
+// 窗口正中挂的牌子：正在下载，还是已经下完、正在拆表
+type ImportBusy = {
+  phase: "download" | "read";
 };
 
 // 收藏室的导入窗：左下角点开源药库就直接下载并导入，自己的文件也能拖进来；撞名的要对照后才入柜
@@ -64,6 +72,12 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
 
   // 左下角正在领哪一份表，像货单还在路上就先别再打电话
   const [loadingJob, setLoadingJob] = useState<OpenSourceJob | null>(null);
+
+  // 窗口正中的等待牌。下载和拆表都要亮着，免得投放台空着像死机
+  const [busy, setBusy] = useState<ImportBusy | null>(null);
+
+  // 这一单的号。关窗或新开一单就作废，迟到的结果别写回已经关上的柜台
+  const requestRef = useRef(0);
 
   // 开着窗才听 Esc，关上就别误伤列表页
   useEffect(() => {
@@ -106,6 +120,8 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
     setDragging(false);
     setCatalogOpen(false);
     setLoadingJob(null);
+    setBusy(null);
+    requestRef.current += 1;
   }, [open]);
 
   // 窗开着时拦住整页的拖放，免得文件落到投放区外被浏览器当成打开新页
@@ -133,10 +149,20 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
   }
 
   // 读选中或拖进来的 JSON / Excel：拆出新药和撞名，格式不对就把原因写在门口
-  async function importFile(file: File) {
+  async function importFile(file: File, token = requestRef.current + 1) {
+    requestRef.current = token;
+
+    // 先挂上「正在拆开」，大表要算一会儿，别让投放台干等
+    setBusy({ phase: "read" });
+    setError("");
+
     try {
       // 把这份表交给拆包员，成功就摊开预览桌
       const packed = await parseHerbImportFile(file, herbs);
+
+      if (token !== requestRef.current) {
+        return;
+      }
 
       // 新药默认全勾。撞名的格子先站到导入这边，不点的话写入和导出才会带上新说明书，而不是教材原文
       const incomingPicks: Record<number, Partial<Record<ImportFieldKey, ImportFieldPick>>> = {};
@@ -152,6 +178,10 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
       setDragging(false);
       setStep("compare");
     } catch (caught) {
+      if (token !== requestRef.current) {
+        return;
+      }
+
       // 拆不开就把原因贴回选文件那一页，别让人走进空预览
       const message = caught instanceof Error ? caught.message : "这份文件读不出来";
 
@@ -159,6 +189,10 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
       setParsed(null);
       setDragging(false);
       setStep("pick");
+    } finally {
+      if (token === requestRef.current) {
+        setBusy(null);
+      }
     }
   }
 
@@ -244,11 +278,19 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
       return;
     }
 
-    setLoadingJob({ id: source.id, mode: "download" });
+    const token = requestRef.current + 1;
+
+    requestRef.current = token;
+    setLoadingJob({ id: source.id, mode: "download", phase: "download" });
+    setBusy({ phase: "download" });
     setError("");
 
     try {
       const file = await fetchOpenSourceFile(source);
+
+      if (token !== requestRef.current) {
+        return;
+      }
 
       // 用临时地址点一下保存，存完就丢掉，免得占着内存
       const url = URL.createObjectURL(file);
@@ -259,11 +301,18 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
       link.click();
       URL.revokeObjectURL(url);
     } catch (caught) {
+      if (token !== requestRef.current) {
+        return;
+      }
+
       const message = caught instanceof Error ? caught.message : "这份开源表没下下来";
 
       setError(message);
     } finally {
-      setLoadingJob(null);
+      if (token === requestRef.current) {
+        setLoadingJob(null);
+        setBusy(null);
+      }
     }
   }
 
@@ -274,22 +323,38 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
       return;
     }
 
-    setLoadingJob({ id: source.id, mode: "import" });
+    const token = requestRef.current + 1;
+
+    requestRef.current = token;
+    setLoadingJob({ id: source.id, mode: "import", phase: "download" });
+    setBusy({ phase: "download" });
     setError("");
 
     try {
       const file = await fetchOpenSourceFile(source);
 
+      if (token !== requestRef.current) {
+        return;
+      }
+
       setCatalogOpen(false);
-      await importFile(file);
+      setLoadingJob({ id: source.id, mode: "import", phase: "read" });
+      await importFile(file, token);
     } catch (caught) {
+      if (token !== requestRef.current) {
+        return;
+      }
+
       // 没领到就停在选文件这页，把原因写出来，别走进空预览
       const message = caught instanceof Error ? caught.message : "这份开源表没下下来";
 
       setError(message);
       setStep("pick");
+      setBusy(null);
     } finally {
-      setLoadingJob(null);
+      if (token === requestRef.current) {
+        setLoadingJob(null);
+      }
     }
   }
 
@@ -359,10 +424,29 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
     onClose();
   }
 
+  // 有新药或要对照的才摊大表；整包都一样就换说明页，别给一个按不下去的写入
+  const canReview =
+    parsed !== null && (parsed.fresh.length > 0 || parsed.duplicates.length > 0);
+
+  const showSettled = step === "compare" && parsed !== null && !canReview;
+
   const nothingToWrite =
     parsed !== null &&
     parsed.duplicates.length === 0 &&
     (parsed.fresh.length === 0 || selectedFreshIds.length === 0);
+
+  // 窗头跟着眼前这一步说话：等着、已经在柜里、还是可以对照
+  const hint = busy
+    ? busy.phase === "download"
+      ? "正在下载药表，下完会接着拆开。"
+      : "正在拆开药表，味数多的话会停一会儿。"
+    : showSettled
+      ? "这份和展柜里已有的一样，不用再写入。"
+      : step === "compare"
+        ? "整包都在表里。新药默认勾上；字不一样的格子先用导入，点一下可以改回本室。"
+        : narrow
+          ? "点开源药库可直接导入，或点上方选择自己的 JSON / Excel。药名重复的要对照后才写入。"
+          : "默认货架不动。左下角点开源药库可直接导入；自己的 JSON 或 Excel 也能拖进来。药名重复的要对照后才写入。";
 
   return (
     <div className={importDialog.backdrop()}>
@@ -373,21 +457,20 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
         onClick={onClose}
       />
 
-      <div className={importDialog.sheet({ wide: step === "compare" })}>
+      <div
+        className={importDialog.sheet({ wide: step === "compare" && canReview })}
+        aria-busy={busy !== null}
+      >
         <div className={importDialog.header()}>
           <h2 className={importDialog.title()}>导入</h2>
 
-          <p className={importDialog.hint()}>
-            {step === "compare"
-              ? "整包都在表里。新药默认勾上；字不一样的格子先用导入，点一下可以改回本室。"
-              : narrow
-                ? "点开源药库可直接导入，或点上方选择自己的 JSON / Excel。药名重复的要对照后才写入。"
-                : "默认货架不动。左下角点开源药库可直接导入；自己的 JSON 或 Excel 也能拖进来。药名重复的要对照后才写入。"}
-          </p>
+          <p className={importDialog.hint()}>{hint}</p>
         </div>
 
         <div className={importDialog.body()}>
-          {step === "pick" ? (
+          {busy ? <BusyStep phase={busy.phase} /> : null}
+
+          {!busy && step === "pick" ? (
             <PickStep
               error={error}
               dragging={dragging}
@@ -398,7 +481,9 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
             />
           ) : null}
 
-          {step === "compare" && parsed ? (
+          {!busy && showSettled && parsed ? <SettledPack parsed={parsed} /> : null}
+
+          {!busy && step === "compare" && parsed && canReview ? (
             <ImportCompareTable
               parsed={parsed}
               selectedFreshIds={selectedFreshIds}
@@ -428,6 +513,7 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
             type="button"
             className={packShelfButton()}
             aria-expanded={catalogOpen}
+            disabled={busy !== null}
             onClick={() => setCatalogOpen((openShelf) => !openShelf)}
           >
             开源药库
@@ -442,7 +528,7 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
             取消
           </Button>
 
-          {step === "compare" && parsed ? (
+          {step === "compare" && parsed && canReview && !busy ? (
             <div className={importDialog.footerActions()}>
               {parsed.duplicates.length > 0 ? (
                 <Button
@@ -482,6 +568,70 @@ export function ImportHerbDialog({ open, herbs, onClose }: ImportHerbDialogProps
   );
 }
 
+// 钮上的字跟着这一步走：下表、拆表，空闲时回到原来的动作
+function shelfActionLabel(
+  rowBusy: boolean,
+  job: OpenSourceJob | null,
+  mode: "download" | "import",
+) {
+  if (!rowBusy || !job || job.mode !== mode) {
+    return mode === "import" ? "下载并导入" : "下载";
+  }
+
+  if (job.phase === "read") {
+    return "正在拆开";
+  }
+
+  return "正在下载";
+}
+
+// 窗口正中的等待：转圈加上这一步在干什么，大表下载和拆包不再像卡住
+function BusyStep({ phase }: { phase: ImportBusy["phase"] }) {
+  return (
+    <div className={busyPanel()} role="status" aria-live="polite">
+      <LoaderCircle className="size-8 animate-spin text-intel" aria-hidden />
+
+      <p className="text-base text-foreground">
+        {phase === "download" ? "正在下载药表" : "正在拆开药表"}
+      </p>
+
+      <p className="max-w-sm text-sm leading-relaxed">
+        {phase === "download"
+          ? "文件还在路上，下完会自动接着拆。"
+          : "味数多的表要算一会儿，算完就会列出要不要写入。"}
+      </p>
+    </div>
+  );
+}
+
+// 整包都和展柜一样：换成说明，不再铺一张按不了写入的大表
+function SettledPack({ parsed }: { parsed: ParsedHerbImport }) {
+  const sameCount = parsed.unchanged.length;
+  const broken = parsed.invalid.slice(0, 8);
+
+  return (
+    <div className={settledPanel()}>
+      <p className="text-base text-foreground">
+        {sameCount > 0 ? "这包已经在展柜里" : "这份表没有能写入的药"}
+      </p>
+
+      <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
+        {sameCount > 0
+          ? `「${parsed.packName}」共 ${sameCount} 味，和现在展柜里的字一样。`
+          : `「${parsed.packName}」里没有新药，也没有和本室不一样的字。`}
+      </p>
+
+      {parsed.invalid.length > 0 ? (
+        <p className="max-w-md text-xs text-destructive">
+          另有 {parsed.invalid.length} 味读不出来：
+          {broken.map((item) => `${item.name}（${item.reason}）`).join("、")}
+          {parsed.invalid.length > broken.length ? " 等" : ""}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 // 左下角拉出的名单：只列药表，每份旁边是「下载并导入」和「下载」
 function PackShelf({
   loadingJob,
@@ -497,7 +647,7 @@ function PackShelf({
   return (
     <div className={packShelf()}>
       <div className={packShelfHeader()}>
-        <p>重名的会进对照。</p>
+        <p>公开药表</p>
 
         <button type="button" className={packShelfClose()} onClick={onClose}>
           收起
@@ -524,7 +674,7 @@ function PackShelf({
                   disabled={loadingJob !== null}
                   onClick={() => onImport(source)}
                 >
-                  {busy && loadingJob.mode === "import" ? "正在下载" : "下载并导入"}
+                  {shelfActionLabel(busy, loadingJob, "import")}
                 </button>
 
                 <button
@@ -533,7 +683,7 @@ function PackShelf({
                   disabled={loadingJob !== null}
                   onClick={() => onDownload(source)}
                 >
-                  {busy && loadingJob.mode === "download" ? "正在下载" : "下载"}
+                  {shelfActionLabel(busy, loadingJob, "download")}
                 </button>
               </div>
             </li>

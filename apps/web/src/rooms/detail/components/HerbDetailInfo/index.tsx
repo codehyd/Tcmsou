@@ -6,8 +6,8 @@ interface HerbDetailInfoProps {
   herb: Herb;
 }
 
-// 详情左侧资料板：药名、分类、性味归经、功效主治
-// 添药按钮先撤掉，这块地方留给以后的图库和 3D，免得空按钮占着说明书
+// 概述这一章：药名、分类、性味归经、功效主治，都用柜子里已经有的字
+// 不在这里补课文。空着的栏藏起来，免得一排空白标题
 export function HerbDetailInfo({ herb }: HerbDetailInfoProps) {
   // 一级是章、二级是节，麻黄要写成解表药下面的发散风寒药
   const category = getHerbCategory(herb.categoryId);
@@ -16,70 +16,61 @@ export function HerbDetailInfo({ herb }: HerbDetailInfoProps) {
   // 节和章同名就只亮一行，免得温里药写两遍
   const showSubclass = Boolean(subclass && subclass.tag !== category?.tag);
 
-  // 药从哪来：药包导入、以前自添、还是印在教材册上
-  const originLabel =
-    herb.origin === "imported"
-      ? "药包导入"
-      : herb.origin === "custom"
-        ? "自行添入"
-        : "本室典籍";
-
   return (
-    <section className="flex max-h-full min-w-0 flex-col gap-3 overflow-y-auto p-4 text-foreground lg:max-w-sm lg:p-5">
-      <div className="flex min-w-0 items-center gap-2">
-        {/* 参考图里药名前面那颗菱形灯，点亮才知道这是当前展品 */}
+    <section className="w-full min-w-0 text-foreground">
+      {/* 药名在上、拼音在下，钉在这一栏顶上，往下翻时名字还在 */}
+      <div className="sticky top-0 z-20 flex min-w-0 items-center gap-3 bg-background px-4 py-3 lg:px-8 lg:py-5">
         <span className="size-2.5 shrink-0 rotate-45 bg-intel" />
 
-        <h2 className="truncate text-xl font-medium tracking-wide">{herb.name}</h2>
+        <div className="min-w-0">
+          <h2 className="truncate text-xl font-medium tracking-wide lg:text-2xl">{herb.name}</h2>
+
+          <p className="mt-1 truncate text-xs tracking-widest text-muted-foreground uppercase">
+            {herb.pinyin}
+          </p>
+        </div>
       </div>
 
-      <p className="text-xs tracking-widest text-muted-foreground uppercase">{herb.pinyin}</p>
+      {/* 短栏目并排，长的功效和主治自己占一整行，大屏才不会挤成一根细条 */}
+      <div className="grid grid-cols-1 gap-5 px-4 pb-4 lg:grid-cols-2 lg:gap-x-10 lg:gap-y-6 lg:px-8 lg:pb-8">
+        <InfoBlock title="功效分类" body={category?.tag ?? "未分类"} />
 
-      {/* 对标展位等级 / 拥有数量：我们改成分类和来源，数量以后接库存再填 */}
-      <dl className="space-y-1 text-sm text-cabinet-muted">
-        {/* 章名先写：解表、清热这些大柜门 */}
-        <div>
-          <dt className="inline text-muted-foreground">功效分类：</dt>
-          <dd className="inline">{category?.tag ?? "未分类"}</dd>
-        </div>
+        {showSubclass ? <InfoBlock title="功用小类" body={subclass?.tag ?? ""} /> : null}
 
-        {showSubclass ? (
-          <div>
-            {/* 节名后写：麻黄要落到发散风寒，不能停在解表一层 */}
-            <dt className="inline text-muted-foreground">功用小类：</dt>
-            <dd className="inline">{subclass?.tag}</dd>
-          </div>
-        ) : null}
+        <InfoBlock title="性味" body={herb.nature} />
 
-        <div>
-          <dt className="inline text-muted-foreground">收录来源：</dt>
-          <dd className="inline">{originLabel}</dd>
-        </div>
-      </dl>
+        <InfoBlock title="归经" body={herb.meridians} />
 
-      <InfoBlock title="性味" body={herb.nature} />
+        <InfoBlock title="功效" body={herb.functions} wide />
 
-      <InfoBlock title="归经" body={herb.meridians} />
-
-      <InfoBlock title="功效" body={herb.functions} />
-
-      <InfoBlock title="主治" body={herb.indications} />
+        <InfoBlock title="主治" body={herb.indications} wide />
+      </div>
     </section>
   );
 }
 
 // 说明书上的一小段：标题像栏目，正文像展签说明，空着就藏起来免得空白栏吓人
-function InfoBlock({ title, body }: { title: string; body: string }) {
+function InfoBlock({
+  title,
+  body,
+  // 功效、主治句子长，大屏横跨两列，短栏目才并排
+  wide = false,
+}: {
+  title: string;
+  body: string;
+  wide?: boolean;
+}) {
   // 用户自添时某栏可能空着，空栏不占地方
   if (!body) {
     return null;
   }
 
   return (
-    <div className="min-w-0">
-      <p className="text-xs tracking-widest text-muted-foreground">{title}</p>
+    <div className={wide ? "min-w-0 lg:col-span-2" : "min-w-0"}>
+      {/* 栏目标题用青字、字距拉开，和下面的说明分开，扫的时候先看到题目 */}
+      <p className="text-xs font-medium tracking-[0.22em] text-intel">{title}</p>
 
-      <p className="mt-1 text-sm leading-relaxed break-words text-cabinet-muted">{body}</p>
+      <p className="mt-1.5 text-sm leading-relaxed break-words text-foreground/90">{body}</p>
     </div>
   );
 }

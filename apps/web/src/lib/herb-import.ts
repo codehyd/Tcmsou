@@ -7,10 +7,14 @@ import type {
   HerbCategoryId,
   HerbPack,
   HerbPackHerb,
+  HerbSource,
   HerbSubclassId,
   ImportFieldKey,
   ImportFieldPick,
 } from "@/types/herb";
+
+// SymMap 官网。详情页「SMHB导入」点下去就到这里，不落到下载文件
+const SYMMAP_HOME = "http://symmap.org/";
 
 // 试用 JSON 仍放在站点里，给想先练对照的人；正式货源走 SymMap
 export const OPEN_HERB_PACK_URL = "/packs/open-herb-pack.json";
@@ -183,9 +187,55 @@ function resolveSubclassId(
 }
 
 // 把药包纸条收成本室认识的药牌；分类对不上就退回原因，不硬塞进错误抽屉
+// 只认 http 开头的地址，免得药包里夹一条脚本被当成官网
+function httpUrl(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return undefined;
+  }
+
+  return trimmed;
+}
+
+// 整包的出处：SMHB 这种写了名字和官网的才盖章。本室自己导出的账本不另起一个来源
+function packSource(pack: HerbPack): HerbSource | undefined {
+  if (pack.id === "cabinet-export") {
+    return undefined;
+  }
+
+  const url = httpUrl(pack.sourceUrl) ?? httpUrl(pack.source);
+  const label = pack.sourceName?.trim();
+
+  if (!label && !url) {
+    return undefined;
+  }
+
+  return {
+    label: label || "药包导入",
+    url,
+  };
+}
+
+// 一味药自己纸条上的出处优先，没有再借用整包的章
+function herbSource(record: HerbPackHerb, fallback?: HerbSource): HerbSource | undefined {
+  const label = record.sourceLabel?.trim();
+  const url = httpUrl(record.sourceUrl);
+
+  if (label) {
+    return { label, url };
+  }
+
+  return fallback;
+}
+
 function packHerbToHerb(
   record: HerbPackHerb,
-  options: { existing?: Herb },
+  options: { existing?: Herb; packSource?: HerbSource },
 ): { herb?: Herb; error?: string } {
   const name = record.name.trim();
 
@@ -203,6 +253,9 @@ function packHerbToHerb(
   const subclassId = classResult.subclassId;
   const pinyin = (record.pinyin ?? options.existing?.pinyin ?? "").trim();
 
+  // 教材册上的药保持本室典籍，不因为药包撞名就改挂外来出处
+  const staysBuiltin = options.existing?.origin === "builtin";
+
   return {
     herb: {
       id: options.existing?.id ?? `imported-${slugFromPinyin(pinyin, name)}`,
@@ -216,6 +269,7 @@ function packHerbToHerb(
       indications: (record.indications ?? "").trim(),
       image: options.existing?.image ?? null,
       origin: options.existing?.origin ?? "imported",
+      source: staysBuiltin ? undefined : herbSource(record, options.packSource ?? options.existing?.source),
     },
   };
 }
@@ -244,6 +298,15 @@ export function mergeHerbByPicks(
 ): Herb {
   const useIncoming = (key: ImportFieldKey) => picks[key] === "incoming";
 
+  // 真的采用了药包的字，出处才跟着换成这包；全留本室就还挂原来的牌子
+  const adoptedIncoming = IMPORT_FIELD_KEYS.some((key) => useIncoming(key));
+  const source =
+    existing.origin === "builtin"
+      ? undefined
+      : adoptedIncoming
+        ? incoming.source ?? existing.source
+        : existing.source;
+
   return {
     ...existing,
     pinyin: useIncoming("pinyin") ? incoming.pinyin : existing.pinyin,
@@ -255,6 +318,7 @@ export function mergeHerbByPicks(
     indications: useIncoming("indications") ? incoming.indications : existing.indications,
     image: existing.image,
     origin: existing.origin,
+    source,
     id: existing.id,
     name: existing.name,
   };
@@ -294,6 +358,10 @@ function asHerbPack(value: unknown): HerbPack | null {
     id: record.id,
     name: record.name,
     source: record.source,
+
+    // 封面名字和官网要跟着走，不然详情页只剩一句「药包导入」
+    sourceName: record.sourceName,
+    sourceUrl: record.sourceUrl,
     herbs: record.herbs,
   };
 }
@@ -312,6 +380,9 @@ export function parseHerbImport(raw: unknown, cabinet: Herb[]): ParsedHerbImport
   const invalid: InvalidPackHerb[] = [];
   const seen = new Set<string>();
 
+  // 整包的章先盖好，新药才知道详情页该写 SMHB导入还是别的表
+  const source = packSource(pack);
+
   for (const record of pack.herbs) {
     const name = typeof record?.name === "string" ? record.name : "";
     const key = normalizeHerbName(name);
@@ -329,7 +400,7 @@ export function parseHerbImport(raw: unknown, cabinet: Herb[]): ParsedHerbImport
     seen.add(key);
 
     const existing = findHerbByName(cabinet, name);
-    const converted = packHerbToHerb(record, { existing });
+    const converted = packHerbToHerb(record, { existing, packSource: source });
 
     if (!converted.herb) {
       invalid.push({ name, reason: converted.error ?? "读不出来" });
@@ -433,7 +504,9 @@ function herbPackFromSymMapRows(
   return {
     id: "symmap-smhb-v2",
     name: "SymMap 药材表（SMHB）",
-    source: "http://symmap.org/download/",
+    source: SYMMAP_DOWNLOAD_PAGE,
+    sourceName: "SMHB导入",
+    sourceUrl: SYMMAP_HOME,
     herbs,
   };
 }
@@ -507,6 +580,9 @@ export function buildHerbPackFromCabinet(herbs: Herb[]): HerbPack {
       meridians: herb.meridians,
       functions: herb.functions,
       indications: herb.indications,
+      // 教材册不写出处；药包进来的要把名字和官网一起带走，再导入还认得出
+      sourceLabel: herb.origin === "builtin" ? undefined : herb.source?.label,
+      sourceUrl: herb.origin === "builtin" ? undefined : herb.source?.url,
     })),
   };
 }

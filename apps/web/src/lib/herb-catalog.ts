@@ -109,6 +109,17 @@ function getSubclassOrder(subclassId: HerbSubclassId): number {
   return HERB_SUBCLASSES.findIndex((subclass) => subclass.id === subclassId);
 }
 
+// 详情底栏、全部药单、右侧展柜共用这一条队伍，和收藏室没筛选时的货架同一顺序
+// 各排各的话，左右邻居会和格子里上下两味对不上，像书架抽错了页
+export function orderCabinetHerbs(herbs: Herb[]): Herb[] {
+  return filterHerbs({
+    herbs,
+    categoryId: ALL_CATEGORY_ID,
+    keyword: "",
+    sort: "default",
+  });
+}
+
 // 按分类、关键字、排序从药柜里拣货：搜索框和侧边栏都会叫它
 // 没有它，页面就只会把整柜原封不动摊开，像超市广播失灵
 export function filterHerbs(options: {

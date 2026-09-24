@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 
 import { CollectionRoomPage } from "@/pages/CollectionRoomPage";
+import { DataSourcesPage } from "@/pages/DataSourcesPage";
 import { HerbDetailPage } from "@/pages/HerbDetailPage";
 
 // 线上站点住在 /Tcmsou/ 这层楼里，路由要先认这扇门；本地是根路径。末尾斜杠去掉，React Router 才肯认
@@ -16,6 +17,9 @@ function App() {
 
         {/* 中药收藏室 2D 柜，点卡片进详情展厅 */}
         <Route path="/collection" element={<CollectionRoomPage />} />
+
+        {/* 数据从哪来：本室典籍和各张公开药表，不跟收藏柜挤在一页 */}
+        <Route path="/sources" element={<DataSourcesPage />} />
 
         {/* 单味药的 2D 展厅：灯箱 + 说明书 + 右侧换展 */}
         <Route path="/collection/:herbId" element={<HerbDetailPage />} />

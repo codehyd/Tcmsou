@@ -9,11 +9,13 @@ import type { Herb } from "@/types/herb";
 // 一张收藏卡要亮的身份：药名、分类签、功效短句、以及有没有图
 interface HerbCardProps {
   herb: Herb;
+  // 抽屉里当前正在看的那味，边框亮一圈，免得滚过去还认不出
+  active?: boolean;
 }
 
 // 收藏柜里的一张药卡：左写名字和功效，右放 empty 图位
 // 功效写出来才不像空盒子；「暂无模型」不再占地方，空图自己会说话
-export function HerbCard({ herb }: HerbCardProps) {
+export function HerbCard({ herb, active = false }: HerbCardProps) {
   // 没图时用药名首字撑场面，陈皮显示「陈」
   const placeholderMark = herb.name.slice(0, 1);
 
@@ -23,7 +25,7 @@ export function HerbCard({ herb }: HerbCardProps) {
   return (
     // 整张卡是门：点一下就进这味药的展厅，像伸手把货从架子上取下来
     <Link to={`/collection/${herb.id}`} className={herbCard.link()}>
-      <article className={herbCard.article()}>
+      <article className={herbCard.article({ active })}>
       {/* 左栏：名字、分类签、拼音、这味药干什么 */}
       <div className={herbCard.body()}>
         <div className="min-w-0">

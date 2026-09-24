@@ -2,6 +2,11 @@ import { cva } from "class-variance-authority";
 
 // 顶栏自己的样式：描边钮会亮青，横条负责安全区留白
 
+// 来源说明不占按钮那么宽，窄屏顶栏才挤得下
+export const roomQuietLink = cva(
+  "shrink-0 text-xs text-intel underline decoration-intel/80 underline-offset-2 sm:text-sm",
+);
+
 // 导出、导入共用一张脸，悬停亮青，像柜门上的两只开关
 export const roomAction = cva(
   "shrink-0 rounded-sm border border-white/15 px-2 py-1 text-xs text-foreground hover:border-intel/40 hover:text-intel sm:text-sm",

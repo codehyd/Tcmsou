@@ -17,7 +17,7 @@ export const OPEN_HERB_SOURCES: OpenHerbSource[] = [
   {
     id: "symmap-smhb-v2",
     name: "SymMap 药材表（SMHB）",
-    detail: "698 味。含性味、归经、功效；主治是关联的中医症状。",
+    detail: "698 味。",
     href: packFile,
     filename: "SymMap-v2.0-SMHB.xlsx",
   },

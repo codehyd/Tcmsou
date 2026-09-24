@@ -5,6 +5,16 @@ import { cva } from "class-variance-authority";
 // 选文件这一步：整块高度都给投放台，领表不占上面
 export const pickStep = cva("flex min-h-0 flex-1 flex-col");
 
+// 下载或拆表时占住窗口正中，像柜台挂上「正在理货」，免得人对着空投放台发愣
+export const busyPanel = cva(
+  "flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 py-16 text-center",
+);
+
+// 整包都已在柜里时的说明页，不再铺一张写不进去的大表
+export const settledPanel = cva(
+  "flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 py-16 text-center",
+);
+
 // 投放台：平时虚线暗底，文件悬在上面就亮青边，像卸货口的灯。手机上让出高度给底栏，宽屏再把台子撑高
 export const dropZone = cva(
   "flex min-h-0 flex-1 cursor-pointer flex-col items-center justify-center gap-3 rounded-sm border border-dashed px-4 py-8 text-center transition-colors sm:min-h-96 sm:px-6 sm:py-10",
@@ -87,7 +97,7 @@ export const importDialog = {
 
 // 左下角的开源药库入口：字一直亮着；鼠标凑上去变成手型，像可以按的门把手
 export const packShelfButton = cva(
-  "inline-flex min-h-11 cursor-pointer items-center text-sm text-intel underline decoration-intel/80 underline-offset-2 sm:mr-auto sm:min-h-0 sm:text-xs",
+  "inline-flex min-h-11 cursor-pointer items-center text-sm text-intel underline decoration-intel/80 underline-offset-2 disabled:cursor-wait disabled:opacity-60 sm:mr-auto sm:min-h-0 sm:text-xs",
 );
 
 // 点开后从底栏上方升起的名单，里面只放一份份药表，不再把「开源药库」自己排成第一条
@@ -95,9 +105,9 @@ export const packShelf = cva(
   "absolute inset-x-0 bottom-full z-20 mb-2 flex flex-col overflow-hidden rounded-sm border border-white/10 bg-background shadow-2xl sm:inset-x-auto sm:left-3 sm:w-[min(32rem,calc(100%-1.5rem))]",
 );
 
-// 名单上方只留一句说明和收起，字小，不像下面那一行药表
+// 标题和下面的药表隔开一条线，像抽屉铭牌和货架不是同一层
 export const packShelfHeader = cva(
-  "flex items-center justify-between gap-3 px-3 pt-2 pb-1 text-xs text-muted-foreground",
+  "flex items-center justify-between gap-3 border-b border-white/10 px-3 py-2 text-xs text-muted-foreground",
 );
 
 // 收起钮在手机上加高，手指才按得到；宽屏仍是一行小字

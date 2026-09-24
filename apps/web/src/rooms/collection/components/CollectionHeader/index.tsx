@@ -1,7 +1,7 @@
 import { ChevronLeft } from "lucide-react";
 import { Link } from "react-router";
 
-import { roomAction, roomHeader } from "./styles";
+import { roomAction, roomHeader, roomQuietLink } from "./styles";
 
 // 顶栏要报的现货数：本室现在摆了几味，不写成分数
 interface CollectionHeaderProps {
@@ -42,6 +42,11 @@ export function CollectionHeader({
       )}
 
       <div className={roomHeader.actions()}>
+        {/* 来源说明单独开门，顶栏一直在，列表和详情都能找到 */}
+        <Link to="/sources" className={roomQuietLink()}>
+          来源
+        </Link>
+
         {/* 导出把本室账本复印走，导入再把外面的表搬进来，两件事分开免得按错门 */}
         {onExportClick ? (
           <button

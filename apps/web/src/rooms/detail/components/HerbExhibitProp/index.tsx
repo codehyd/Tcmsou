@@ -15,7 +15,7 @@ export function HerbExhibitProp({ herb }: HerbExhibitPropProps) {
   return (
     <div className="animate-exhibit-float flex flex-col items-center">
       {/* 灯下那块展品，有照片就挂真容，没有就用 empty 立牌 */}
-      <div className="flex size-40 items-center justify-center rounded-sm bg-black/35 p-2 shadow-[0_22px_40px_oklch(0_0_0_/_0.35)] sm:size-48 lg:size-56">
+      <div className="flex size-44 items-center justify-center rounded-sm bg-black/35 p-2 shadow-[0_22px_40px_oklch(0_0_0_/_0.35)] sm:size-52 lg:size-72 xl:size-80">
         {herb.image ? (
           <img
             src={herb.image}
@@ -28,7 +28,7 @@ export function HerbExhibitProp({ herb }: HerbExhibitPropProps) {
       </div>
 
       {/* 脚下那团影子，让它看起来是浮在展台中央，不是贴在墙上的贴纸 */}
-      <div className="mt-6 h-3 w-28 rounded-full bg-black/25 blur-[2px] sm:w-36" />
+      <div className="mt-6 h-3 w-28 rounded-full bg-black/25 blur-[2px] sm:w-36 lg:w-48" />
 
       <p className="mt-4 text-sm tracking-[0.35em] text-black/45 uppercase">
         {herb.pinyin}

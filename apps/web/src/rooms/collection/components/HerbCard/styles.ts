@@ -5,9 +5,20 @@ export const herbCard = {
   // 整张卡是门
   link: cva("block min-w-0"),
 
-  // 左字右图，悬停描边亮青
+  // 左字右图。当前这味多一圈青边，像货架上被抽出来的那一格
   article: cva(
     "flex min-h-[132px] min-w-0 max-w-full overflow-hidden rounded-sm border border-cabinet-border bg-cabinet transition-colors hover:border-intel/40 sm:min-h-[148px] 2xl:min-h-[160px]",
+    {
+      variants: {
+        active: {
+          true: "border-intel/55 ring-1 ring-intel/30",
+          false: "",
+        },
+      },
+      defaultVariants: {
+        active: false,
+      },
+    },
   ),
 
   // 左栏：名字、拼音、功效

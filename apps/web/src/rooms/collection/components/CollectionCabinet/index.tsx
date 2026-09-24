@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 
 import { CategoryChipBar } from "@/rooms/collection/components/CategoryChipBar";
 import { CollectionSelect } from "@/rooms/collection/components/CollectionSelect";
@@ -35,8 +35,8 @@ export function CollectionCabinet({
   allCount,
   countsByCategory,
 }: CollectionCabinetProps) {
-  // 柜体自己是滚动盒子，换柜门时要回到顶，像翻到新抽屉先从第一格看
-  const scrollerRef = useRef<HTMLElement>(null);
+  // 柜体自己是滚动盒子。等这根滚筒挂上 DOM 再画药卡，否则虚拟列表会以为窗口高度是 0
+  const [scroller, setScroller] = useState<HTMLElement | null>(null);
 
   // 窄屏把排序放在「收藏柜」标题右侧，避免和分类标签挤在同一行
   const sortItems = [
@@ -46,14 +46,11 @@ export function CollectionCabinet({
 
   // 换分类就把列表拽回顶，免得还停在上一柜滚到一半的位置
   useEffect(() => {
-    scrollerRef.current?.scrollTo({ top: 0 });
-  }, [categoryId]);
+    scroller?.scrollTo({ top: 0 });
+  }, [categoryId, scroller]);
 
   return (
-    <main
-      ref={scrollerRef}
-      className={cabinet.scroller()}
-    >
+    <main ref={setScroller} className={cabinet.scroller()}>
       {/* 搜索先跟着列表走，窄屏划走后把屏幕留给药卡；大屏连同下拉一起钉住 */}
       <div className={cabinet.toolbarDock()}>
         <CollectionToolbar
@@ -93,7 +90,7 @@ export function CollectionCabinet({
         </div>
       </div>
 
-      <HerbGrid herbs={herbs} />
+      {scroller ? <HerbGrid herbs={herbs} scrollElement={scroller} /> : null}
     </main>
   );
 }

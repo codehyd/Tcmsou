@@ -49,6 +49,14 @@ export interface Herb {
   meridians: string;
   indications: string;
   origin: HerbOrigin;
+  // 药包带来的出处。教材册没有这张纸条，详情页就不做链接
+  source?: HerbSource;
+}
+
+// 一味药是从哪份公开表进来的：名字给人看，网址点了去官网
+export interface HerbSource {
+  label: string;
+  url?: string;
 }
 
 // 自添中药时要填的纸，编号和来源由药柜自己盖章
@@ -75,6 +83,9 @@ export type HerbPackHerb = {
   meridians?: string;
   functions?: string;
   indications?: string;
+  // 这味药自己的出处，再导入时还认得出是 SMHB 还是别的表
+  sourceLabel?: string;
+  sourceUrl?: string;
 };
 
 // 下载下来的整包：封面说明 + 一叠药牌
@@ -82,6 +93,9 @@ export type HerbPack = {
   id?: string;
   name?: string;
   source?: string;
+  // 给人看的来源名，和能点开的官网。没有网址就只显示字
+  sourceName?: string;
+  sourceUrl?: string;
   herbs: HerbPackHerb[];
 };
 
