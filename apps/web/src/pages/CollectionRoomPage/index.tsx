@@ -28,8 +28,9 @@ export function CollectionRoomPage() {
   // 中药药材列表
   const herbs = useCabinetHerbs();
 
-  // 功效分类柜门，侧边栏和下拉共用这一份，免得两套目录打架
+  // 中药功效分类 比如解表 补益等
   const categories = useMemo(() => getVisibleHerbCategories(herbs), [herbs]);
+  console.log('categories', categories);
 
   // 记下用户点了哪一类，没点就当逛全部，像先站在库房门口
   const [categoryId, setCategoryId] =

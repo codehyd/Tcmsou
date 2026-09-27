@@ -167,6 +167,8 @@ export function getSubclassesByCategory(categoryId: HerbCategoryId): HerbSubclas
 export function getVisibleHerbCategories(herbs: Herb[]): HerbCategory[] {
   const used = new Set(herbs.map((herb) => herb.categoryId));
 
+  console.log(used)
+
   return HERB_CATEGORIES.filter((category) => {
     return CORE_CATEGORY_IDS.includes(category.id) || used.has(category.id);
   });
