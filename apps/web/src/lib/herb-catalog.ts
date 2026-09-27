@@ -3,8 +3,8 @@ import {
   HERB_SUBCLASSES,
   getSubclassesByCategory,
   getVisibleHerbCategories,
-} from "@/data/categories";
-import { HERBS } from "@/data/herbs";
+} from "@/data/catalog/categories";
+import { HERBS } from "@/data/catalog/herbs";
 import {
   ALL_CATEGORY_ID,
   type CategoryFilterId,

@@ -12,26 +12,33 @@ import {
   filterHerbs,
   getVisibleHerbCategories,
 } from "@/lib/herb-catalog";
-import { buildHerbPackFromCabinet, downloadHerbPackFile } from "@/lib/herb-import";
+import {
+  buildHerbPackFromCabinet,
+  downloadHerbPackFile,
+} from "@/lib/herb-import";
 import { useCabinetHerbs } from "@/store/herb-cabinet";
-import { ALL_CATEGORY_ID, type CategoryFilterId, type HerbSort } from "@/types/herb";
+import {
+  ALL_CATEGORY_ID,
+  type CategoryFilterId,
+  type HerbSort,
+} from "@/types/herb";
 
-// 收藏室首页：只负责记状态，把顶栏、导航、分类、柜体这些积木拼起来
-// 具体长什么样交给各个组件，这里不堆大段 HTML，方便以后接 AI 补药也不改布局
+// 收藏室的首页
 export function CollectionRoomPage() {
-  // 教材册加上用户自添的药，列表和计数都看这一份
+  // 中药药材列表
   const herbs = useCabinetHerbs();
 
   // 功效分类柜门，侧边栏和下拉共用这一份，免得两套目录打架
   const categories = useMemo(() => getVisibleHerbCategories(herbs), [herbs]);
 
   // 记下用户点了哪一类，没点就当逛全部，像先站在库房门口
-  const [categoryId, setCategoryId] = useState<CategoryFilterId>(ALL_CATEGORY_ID);
+  const [categoryId, setCategoryId] =
+    useState<CategoryFilterId>(ALL_CATEGORY_ID);
 
   // 记下搜索框里的字，列表靠它筛，空着就不过滤
   const [keyword, setKeyword] = useState("");
 
-  // 记下排队方式：默认按柜门，名称则按药名点名
+  // 记下排队方式：默认按柜门，名称则按药名点名·
   const [sort, setSort] = useState<HerbSort>("default");
 
   // 药包窗开没开，像库房侧门的插销；关掉就不挡货架

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from "r
 import { FileUp, LoaderCircle } from "lucide-react";
 
 import { ImportCompareTable } from "@/rooms/collection/components/ImportCompareTable";
-import { OPEN_HERB_SOURCES, type OpenHerbSource } from "@/data/public-herb-packs";
+import { OPEN_HERB_SOURCES, type OpenHerbSource } from "@/data/packs/public-herb-packs";
 import { useNarrowScreen } from "@/lib/use-narrow-screen";
 import {
   busyPanel,

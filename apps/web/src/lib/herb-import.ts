@@ -1,6 +1,6 @@
-import { HERB_CATEGORIES, HERB_CLASS_ALIASES, HERB_SUBCLASSES } from "@/data/categories";
-import { getDefaultSubclassId } from "@/data/herbs";
-import symmapHerbNotes from "@/data/symmap-herb-notes.json";
+import { HERB_CATEGORIES, HERB_CLASS_ALIASES, HERB_SUBCLASSES } from "@/data/catalog/categories";
+import { getDefaultSubclassId } from "@/data/catalog/herbs";
+import symmapHerbNotes from "@/data/packs/symmap-herb-notes.json";
 import { formatHerbClassPath } from "@/lib/herb-catalog";
 import type {
   Herb,

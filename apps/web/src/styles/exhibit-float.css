@@ -1,0 +1,11 @@
+/* 展位样品上下移动 14px，theme.css 里的 exhibit-float 动画引用这个名字 */
+@keyframes exhibit-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-14px);
+  }
+}

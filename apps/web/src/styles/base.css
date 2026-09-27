@@ -1,0 +1,44 @@
+/* 全站底：边框跟主题、页面不横向撑出屏幕、能点的显示手型 */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+
+  /* 页面底色和文字颜色跟主题变量走 */
+  /* 横向滚动锁在页面外，分类横滑只发生在标签行里面 */
+  body {
+    @apply bg-background text-foreground;
+    overflow-x: hidden;
+    }
+
+  html {
+    @apply font-sans;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    }
+
+  /* 根节点同样锁宽度，避免分类横滑把整页推出手机屏幕 */
+  #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    }
+
+  /* 能点的用手指光标；禁用的用禁止光标。放在底层，加载中的等待光标还可以盖上来 */
+  button:not(:disabled),
+  a[href],
+  label,
+  select,
+  summary,
+  input[type="checkbox"],
+  input[type="radio"],
+  [role="button"]:not([aria-disabled="true"]),
+  [role="option"]:not([data-disabled]) {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
