@@ -33,6 +33,9 @@ export const herbCard = {
   // 拼音小字
   pinyin: cva("mt-1 truncate text-xs tracking-wide text-muted-foreground uppercase"),
 
+  // 并进来的植物来源，比如蒙古黄芪。没有就不占一行
+  sources: cva("mt-1 truncate text-xs text-muted-foreground"),
+
   // 功效最多两行，中文没空格也要折行
   functions: cva("line-clamp-2 break-words text-[13px] leading-relaxed text-cabinet-muted"),
 

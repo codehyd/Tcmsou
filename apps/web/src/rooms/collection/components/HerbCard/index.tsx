@@ -42,6 +42,10 @@ export function HerbCard({ herb, active = false }: HerbCardProps) {
           <p className={herbCard.pinyin()}>
             {herb.pinyin}
           </p>
+
+          {herb.sources && herb.sources.length > 0 ? (
+            <p className={herbCard.sources()}>{herb.sources.join("、")}</p>
+          ) : null}
         </div>
 
         {/* 功效短句最多两行；中文没有空格，不折行就会把卡片撑出手机屏幕。字色跟柜体 token，比以前那档浅灰更像开了灯 */}

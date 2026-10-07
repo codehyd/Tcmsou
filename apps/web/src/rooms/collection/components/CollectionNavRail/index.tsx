@@ -1,19 +1,33 @@
-import { Archive } from "lucide-react";
+import { Archive, ScrollText } from "lucide-react";
+import { Link, useLocation } from "react-router";
 
 import { navRail } from "./styles";
 
-// 最左一列图标轨：以后 3D 场景、AI 助手也可以在这里加站
-// 第一版只有收藏室这一站是亮的，像地铁线路图先点亮起始站
-export function CollectionNavRail() {
-  return (
-    // 窄屏藏起来，大屏才亮出这一列；底色跟房间同一套墨蓝灰，不再单独刷近黑
-    <aside className={navRail.shell()}>
-      {/* 选中态用青色底，跟功效分类的选中灯同一套语言 */}
-      <div className={navRail.mark()}>
-        <Archive className="size-4" />
-      </div>
+// 最左一列图标轨。收藏室和拟方从这里切换，窄屏这列会藏起来
+const STATIONS = [
+  { to: "/collection", label: "收藏", icon: Archive, match: "/collection" },
+  { to: "/formulas", label: "拟方", icon: ScrollText, match: "/formulas" },
+] as const;
 
-      <span className={navRail.label()}>收藏</span>
+export function CollectionNavRail() {
+  const { pathname } = useLocation();
+
+  return (
+    <aside className={navRail.shell()}>
+      {STATIONS.map((station) => {
+        const active = pathname.startsWith(station.match);
+        const Icon = station.icon;
+
+        return (
+          <Link key={station.to} to={station.to} className={navRail.station()}>
+            <div className={navRail.mark({ active })}>
+              <Icon className="size-4" />
+            </div>
+
+            <span className={navRail.label({ active })}>{station.label}</span>
+          </Link>
+        );
+      })}
     </aside>
   );
 }

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import { HERBS } from "@/data/catalog/herbs";
+import { groupCabinetHerbs } from "@/lib/herb-identity";
 import type { Herb } from "@/types/herb";
 
 import { useHerbCabinetStore } from "@/store/herb-cabinet/store";
@@ -17,7 +18,8 @@ export function useCabinetHerbs(): Herb[] {
   return useMemo(() => {
     const builtins = HERBS.map((herb) => overrides[herb.id] ?? herb);
 
-    return [...builtins, ...extraHerbs];
+    // 炙黄芪、蒙古黄芪这类名字并进本尊，列表和选药都只看到黄芪
+    return groupCabinetHerbs([...builtins, ...extraHerbs]);
   }, [extraHerbs, overrides]);
 }
 

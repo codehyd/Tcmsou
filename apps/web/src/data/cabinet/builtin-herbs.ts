@@ -1,8 +1,9 @@
 import type { Herb } from "@/types/herb";
 
 // 登记自带药时要写的字段。照片和来源由 defineHerb 补，以后加字段只改这一处和对应的药
-export type BuiltinHerbInput = Omit<Herb, "image" | "origin"> & {
+export type BuiltinHerbInput = Omit<Herb, "image" | "origin" | "unit"> & {
   image?: Herb["image"];
+  unit?: string;
 };
 
 // 自带的 30 味药原文。herbs.ts 遍历这份清单，补上照片和来源

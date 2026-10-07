@@ -1,7 +1,10 @@
 import type { Herb } from "@/types/herb";
 
 import { CABINET_IMPORT_KEY } from "@/constants/herb-cabinet";
-import { EMPTY_IMPORT_STATE, type CabinetImportState } from "@/data/cabinet/defaults";
+import {
+  EMPTY_IMPORT_STATE,
+  type CabinetImportState,
+} from "@/data/cabinet/defaults";
 import { utils } from "@/utils";
 import {
   isHerbRecord,
@@ -11,7 +14,10 @@ import {
 // 打开药柜存档。没有或读坏了就用空数据，自带药不受影响
 export function loadImportState(): CabinetImportState {
   try {
-    const parsed = utils.cache.get<CabinetImportState>(CABINET_IMPORT_KEY, "json");
+    const parsed = utils.cache.get<CabinetImportState>(
+      CABINET_IMPORT_KEY,
+      "json",
+    );
 
     if (!parsed || typeof parsed !== "object") {
       return EMPTY_IMPORT_STATE;

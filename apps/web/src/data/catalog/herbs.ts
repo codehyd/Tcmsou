@@ -8,6 +8,7 @@ function defineHerb(input: BuiltinHerbInput): Herb {
   return {
     image: null,
     ...input,
+    unit: input.unit?.trim() || "克",
     origin: "builtin",
   };
 }
@@ -38,6 +39,7 @@ export function createCustomHerb(draft: CustomHerbDraft): Herb {
     meridians: draft.meridians.trim(),
     indications: draft.indications.trim(),
     image: null,
+    unit: "克",
     origin: "custom",
   };
 }

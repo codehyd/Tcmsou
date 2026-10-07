@@ -43,6 +43,10 @@ export function CollectionHeader({
 
       <div className={roomHeader.actions()}>
         {/* 来源说明单独开门，顶栏一直在，列表和详情都能找到 */}
+        <Link to="/formulas" className={roomQuietLink()}>
+          拟方
+        </Link>
+
         <Link to="/sources" className={roomQuietLink()}>
           来源
         </Link>

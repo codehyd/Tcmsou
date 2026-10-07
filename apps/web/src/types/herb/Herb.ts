@@ -35,6 +35,18 @@ export interface Herb {
   // indications 是主治，适合用在什么情况
   indications: string;
 
+  // unit 是这味药的剂量单位。没写时按克
+  unit?: string;
+
+  // aliases 是已经归进这一味的原名，比如炙黄芪。列表里不再单独占一条
+  aliases?: string[];
+
+  // sources 是可选的植物来源或货品名，比如蒙古黄芪。空着表示没单标来源
+  sources?: string[];
+
+  // mergedIds 是被并进这一条的原编号。旧链接还能打开归并后的这味药
+  mergedIds?: string[];
+
   // origin 是这味药从哪来：自带、导入，或手写添加
   origin: HerbOrigin;
 

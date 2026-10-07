@@ -43,6 +43,7 @@ export function normalizeStoredHerb(record: Herb, origin: Herb["origin"]): Herb 
     categoryId,
     subclassId: resolveSubclassId(categoryId, record.subclassId),
     image: record.image ?? null,
+    unit: record.unit?.trim() || "克",
     origin: record.origin ?? origin,
 
     // 本室典籍不记出处。外来药要有来源名称；网址必须是 http 或 https

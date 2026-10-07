@@ -148,13 +148,15 @@ export function filterHerbs(options: {
       const tag = category?.tag.toLowerCase() ?? "";
       const subclassTag = subclass?.tag.toLowerCase() ?? "";
 
-      // 药名、拼音、功效、章签、节签任一命中都留下
+      // 药名、拼音、功效、章签、节签、归并进来的原名和来源，命中都留下
       return (
         herb.name.toLowerCase().includes(needle) ||
         herb.pinyin.toLowerCase().includes(needle) ||
         herb.functions.toLowerCase().includes(needle) ||
         tag.includes(needle) ||
-        subclassTag.includes(needle)
+        subclassTag.includes(needle) ||
+        herb.aliases?.some((alias) => alias.toLowerCase().includes(needle)) ||
+        herb.sources?.some((source) => source.toLowerCase().includes(needle))
       );
     });
   }
@@ -190,5 +192,5 @@ export function filterHerbs(options: {
 
 // 按编号从当前货架里取出一味药，详情页靠它认人；找不到就说明门牌写错了
 export function getHerbById(herbs: Herb[], herbId: string): Herb | undefined {
-  return herbs.find((herb) => herb.id === herbId);
+  return herbs.find((herb) => herb.id === herbId || herb.mergedIds?.includes(herbId));
 }
