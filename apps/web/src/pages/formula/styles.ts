@@ -15,11 +15,44 @@ export const formulaPage = {
 
   field: cva("flex min-w-36 flex-col gap-1 text-xs text-muted-foreground"),
 
+  // 处方名比剂数、用法长，单独给宽一点
+  nameField: cva("flex min-w-48 flex-1 flex-col gap-1 text-xs text-muted-foreground"),
+
   input: cva(
     "h-8 rounded-sm border border-white/15 bg-transparent px-2 text-sm text-foreground outline-none focus:border-intel/50",
   ),
 
+  // 保存时必填的栏。星号标在名称后面，草稿可以先空着
+  required: cva("ml-0.5 text-destructive"),
+
+  // 共几付、一日几剂、一次几剂算出来的那一句，单独占工具条的下一行
+  courseHint: cva("basis-full text-xs text-muted-foreground"),
+
   status: cva("text-xs text-intel"),
+
+  // 状态和两个保存按钮靠工具条右侧，不跟剂数、用法挤在一起
+  saveBar: cva("ml-auto flex items-center gap-2"),
+
+  saveDraft: cva(
+    "rounded-sm border border-white/15 px-3 py-1.5 text-sm hover:border-intel/40 hover:text-intel",
+  ),
+
+  save: cva("rounded-sm border border-intel/50 bg-intel/15 px-3 py-1.5 text-sm text-intel hover:bg-intel/25"),
+
+  // 保存结果浮在页面中间。点暗处或「知道了」关掉
+  dialogBackdrop: cva("fixed inset-0 z-50 flex items-center justify-center p-4"),
+
+  dialogScrim: cva("absolute inset-0 bg-black/65"),
+
+  dialog: cva(
+    "relative z-10 w-full max-w-sm rounded-sm border border-white/10 bg-background px-4 py-4 shadow-2xl",
+  ),
+
+  dialogTitle: cva("text-sm font-medium"),
+
+  dialogBody: cva("mt-2 text-sm leading-relaxed text-muted-foreground"),
+
+  dialogFooter: cva("mt-4 flex justify-end"),
 
   body: cva("min-h-0 min-w-0 flex-1 overflow-auto px-4 py-3"),
 

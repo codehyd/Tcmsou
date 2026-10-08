@@ -135,7 +135,8 @@ export function FormulaSortableRow({
             ref={doseRef}
             inputMode="decimal"
             value={line.dose}
-            placeholder="每一剂"
+            placeholder="每一付"
+            aria-required="true"
             className={formulaTable.dose()}
             onChange={(event) => onDoseChange(event.target.value)}
           />

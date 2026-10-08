@@ -13,18 +13,90 @@ export function isFilledDose(dose: string) {
   return /^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(dose.trim()) && Number(dose) > 0;
 }
 
-// 剂数是否是正整数
+// 剂数、付数、一次几剂是否是大于 0 的数。整数和小数都可以，空的、0、字母不行
+function readPositive(value: string) {
+  const text = value.trim();
+
+  if (!/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(text) || Number(text) <= 0) {
+    return null;
+  }
+
+  return Number(text);
+}
+
+// 算出的剂数、次数、天数写到下面那一句。整数不带小数点，其余最多留两位
+function formatCourseNumber(value: number) {
+  const rounded = Math.round(value * 100) / 100;
+
+  if (Math.abs(rounded - Math.round(rounded)) < 1e-9) {
+    return String(Math.round(rounded));
+  }
+
+  return String(rounded);
+}
+
+// 工具条下面那一句。付数就是可服几天；付数乘一日几剂是一共多少剂；一日几剂除以一次几剂是一天几次
+export function formulaCourseHint(sheet: Pick<FormulaSheet, "doseCount" | "dailyDoses" | "doseEach">) {
+  const days = readPositive(sheet.doseCount);
+  const perDay = readPositive(sheet.dailyDoses ?? "");
+  const each = readPositive(sheet.doseEach ?? "");
+  const parts: string[] = [];
+
+  // 一共多少剂。两栏都写成大于 0 的数才乘
+  if (days != null && perDay != null) {
+    parts.push(`一共 ${formatCourseNumber(days * perDay)} 剂`);
+  }
+
+  // 一天吃几次。一次几剂空着就不写
+  if (perDay != null && each != null) {
+    parts.push(`一天 ${formatCourseNumber(perDay / each)} 次`);
+  }
+
+  // 几付就是几天
+  if (days != null) {
+    parts.push(`可服 ${formatCourseNumber(days)} 天`);
+  }
+
+  if (parts.length === 0) {
+    return "";
+  }
+
+  return `${parts.join("，")}。`;
+}
+
+// 付数是否是正整数。保存共几付时用，7 可以，7.5 不行
 export function isFilledDoseCount(doseCount: string) {
   return /^[1-9]\d*$/.test(doseCount.trim());
 }
 
-// 每一行都有剂量，并且写了共几剂，才算开好。否则还是草稿
+// 每一行都有剂量，写了共几付，并且有处方名，才允许点「保存」。草稿不看这个
 export function isFormulaReady(sheet: FormulaSheet) {
-  if (!isFilledDoseCount(sheet.doseCount) || sheet.lines.length === 0) {
+  if (!(sheet.name ?? "").trim() || !isFilledDoseCount(sheet.doseCount) || sheet.lines.length === 0) {
     return false;
   }
 
   return sheet.lines.every((line) => isFilledDose(line.dose));
+}
+
+// 点「保存」前调用。缺处方名、药、剂数或某一味的剂量时，返回页面上要显示的那句；齐了就没有这句话
+export function formulaSaveBlockReason(sheet: FormulaSheet) {
+  if (!(sheet.name ?? "").trim()) {
+    return "保存要先写处方名。";
+  }
+
+  if (sheet.lines.length === 0) {
+    return "还没有药，先添进行再保存。";
+  }
+
+  if (!isFilledDoseCount(sheet.doseCount)) {
+    return "共几付要写成大于 0 的整数，才能保存。";
+  }
+
+  if (sheet.lines.some((line) => !isFilledDose(line.dose))) {
+    return "每一味都要写上剂量，才能保存。";
+  }
+
+  return null;
 }
 
 // 拟方格子里的药名。选了植物来源就写在药名后面，黄芪 (蒙古黄芪)；没选来源就只写黄芪
@@ -53,42 +125,39 @@ function formulaLineLabel(line: FormulaLine) {
   return `${titled}（${process}）`;
 }
 
-// 点药名重新选药时调用。同一味药只改这次点到的炮制或来源；换成另一味药则按新药重写
+// 改已有的一行时调用。剂量留下，脚注、标准、炮制、来源先回到新开一行的空值，再按这次点到的本尊或子项写上
 export function applyHerbPickToLine(line: FormulaLine, herb: Herb, child?: HerbChild): FormulaLine {
-  // 还是不是这一味。换成别的药时，不把上一味的炮制和来源带过去
-  const sameHerb = line.herbId === herb.id;
-
-  // 点了炙黄芪这类才改炮制。同一味药没点到炮制时，炮制列原来的值留着
-  let process: FormulaProcessId = "";
-
-  if (child?.process) {
-    process = child.process;
-  } else if (sameHerb) {
-    process = line.process;
-  }
-
-  // 点本尊就清掉来源，药名只剩黄芪。点蒙古黄芪才写来源；同一味药只改炮制时，来源留着
-  let source = "";
-
-  if (child?.source) {
-    source = child.source;
-  } else if (child && sameHerb) {
-    source = line.source;
-  }
+  // 先按这次选中的药排一行。本尊的炮制和来源是空的，子项才带上炙或蒙古黄芪
+  const fresh = lineFromHerb(herb, {
+    process: child?.process ?? "",
+    source: child?.source ?? "",
+    lineKey: child?.id ?? "base",
+  });
 
   return {
-    ...line,
-    herbId: herb.id,
-    name: herb.name,
-    categoryTag: getHerbClassTag(herb),
-    unit: herb.unit?.trim() || "克",
-    process,
-    source,
+    ...fresh,
+
+    // 还是这一行，编号不能换，否则剂量输入框对不上
+    lineId: line.lineId,
+
+    // 已经写过的用量留着，重新选药不把克数清掉
+    dose: line.dose,
   };
 }
 
-// 列表上显示的名字：有药就用前几味药名，没有就叫空拟方
+// 列表卡片上的称呼。写了处方名就用处方名，没写就用前几味药，一味都没有叫空拟方
 export function formulaTitle(sheet: FormulaSheet) {
+  const named = (sheet.name ?? "").trim();
+
+  if (named) {
+    return named;
+  }
+
+  return formulaComposition(sheet);
+}
+
+// 用前几味药拼一行，写了处方名时放在标题下面
+export function formulaComposition(sheet: FormulaSheet) {
   const names = sheet.lines.map((line) => formulaLineLabel(line)).filter(Boolean);
 
   if (names.length === 0) {

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router";
 import { CollectionHeader } from "@/rooms/collection/components/CollectionHeader";
 import { CollectionNavRail } from "@/rooms/collection/components/CollectionNavRail";
 import { alignFormulaLineName } from "@/lib/herb-identity";
-import { formulaTitle, isFormulaReady } from "@/lib/formula";
+import { formulaComposition, formulaTitle } from "@/lib/formula";
 import { countAllHerbs } from "@/lib/herb-catalog";
 import { useCabinetHerbs } from "@/store/herb-cabinet";
 import { useFormulaStore } from "@/store/formula";
@@ -63,7 +63,8 @@ export function FormulaListPage() {
           ) : (
             <ul className={formulaList.grid()}>
               {sheets.map((sheet) => {
-                const ready = isFormulaReady(sheet);
+                const ready = sheet.status === "saved";
+                const named = (sheet.name ?? "").trim();
 
                 return (
                   <li key={sheet.id} className="flex flex-col gap-2">
@@ -73,9 +74,12 @@ export function FormulaListPage() {
                       onClick={() => navigate(`/formulas/${sheet.id}`)}
                     >
                       <span className={formulaList.title()}>{formulaTitle(sheet)}</span>
+                      {named && sheet.lines.length > 0 ? (
+                        <span className={formulaList.meta()}>{formulaComposition(sheet)}</span>
+                      ) : null}
                       <span className={ready ? formulaList.ready() : formulaList.draft()}>
                         {ready ? "已拟" : "草稿"}
-                        {sheet.doseCount ? ` · ${sheet.doseCount} 剂` : ""}
+                        {sheet.doseCount ? ` · ${sheet.doseCount} 付` : ""}
                         {` · ${sheet.lines.length} 味`}
                       </span>
                     </button>

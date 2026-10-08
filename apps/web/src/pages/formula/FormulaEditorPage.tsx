@@ -5,14 +5,20 @@ import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import { Navigate, useParams } from "react-router";
 
 import type { Herb, HerbChild } from "@/types/herb";
-import type { FormulaLine, FormulaProcessId, FormulaSheet, FormulaStandardId } from "@/types/formula";
+import type {
+  FormulaLine,
+  FormulaProcessId,
+  FormulaSheet,
+  FormulaSheetStatus,
+  FormulaStandardId,
+} from "@/types/formula";
 
 import { CollectionHeader } from "@/rooms/collection/components/CollectionHeader";
 import { CollectionNavRail } from "@/rooms/collection/components/CollectionNavRail";
 import { FormulaLinePreview, FormulaSortableRow } from "@/rooms/formula/components/FormulaSortableRow";
 import { HerbNamePicker } from "@/rooms/formula/components/HerbNamePicker";
 import { alignFormulaLineName } from "@/lib/herb-identity";
-import { applyHerbPickToLine, isFormulaReady, lineFromHerb } from "@/lib/formula";
+import { applyHerbPickToLine, formulaCourseHint, formulaSaveBlockReason, lineFromHerb } from "@/lib/formula";
 import { countAllHerbs } from "@/lib/herb-catalog";
 import { useCabinetHerbs } from "@/store/herb-cabinet";
 import { useFormulaStore } from "@/store/formula";
@@ -49,8 +55,30 @@ export function FormulaEditorPage() {
   // 正在被拖起来的那一行。松手或取消后清空
   const [draggingId, setDraggingId] = useState<string | null>(null);
 
+  // 保存或保存草稿之后弹出的结果。空着表示没开
+  const [dialog, setDialog] = useState<{ title: string; body: string } | null>(null);
+
   // 稍微挪开才算拖，避免点一下把手就换行
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+
+  // 弹窗开着时按 Esc 关掉
+  useEffect(() => {
+    if (!dialog) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setDialog(null);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [dialog]);
 
   // 药名里夹着的炮制和来源拆到对应栏。柜里的药一变就再对一次
   useEffect(() => {
@@ -79,16 +107,41 @@ export function FormulaEditorPage() {
   // 找到之后固定用这一张。后面的函数不能再拿可能为空的查找结果
   const current = sheet;
 
-  // 改这张方时调用。用方的编号去改最新内容，不拿页面上可能过时的整张去覆盖
-  function commit(change: (sheet: FormulaSheet) => FormulaSheet) {
-    updateSheet(current.id, change);
+  // 改这张方时调用。用方的编号去改最新内容。没指定状态时记回草稿，只有点「保存」才写成已保存
+  function commit(
+    change: (sheet: FormulaSheet) => FormulaSheet,
+    status: FormulaSheetStatus = "draft",
+  ) {
+    updateSheet(current.id, (sheet) => ({
+      ...change(sheet),
+      status,
+    }));
   }
 
-  // 选本尊就只写药名。这味药已经在方里时，再选炙黄芪只改这一行的炮制，不另起一行
+  // 点「保存草稿」。内容可以不齐，状态记成草稿，结果用弹窗说
+  function handleSaveDraft() {
+    commit((sheet) => sheet, "draft");
+    setDialog({ title: "草稿已保存", body: "这张方先按草稿记下，处方名和剂量可以以后再补。" });
+  }
+
+  // 点「保存」。缺处方名、药或剂量时弹出原因，不改状态；齐了才记成已保存
+  function handleSave() {
+    const reason = formulaSaveBlockReason(current);
+
+    if (reason) {
+      setDialog({ title: "还不能保存", body: reason });
+      return;
+    }
+
+    commit((sheet) => ({ ...sheet, name: sheet.name.trim() }), "saved");
+    setDialog({ title: "已保存", body: "这张拟方已经记下。" });
+  }
+
+  // 底部选药。方里还没有就新开一行；已经有了就改那一行，剂量留下，其余按这次选中的药重写
   function handlePick(herb: Herb, child?: HerbChild) {
     const sameHerb = current.lines.filter((line) => line.herbId === herb.id);
 
-    // 方里还没有这味药，才新开一行
+    // 方里还没有这味药，才新开一行。新行剂量是空的
     if (sameHerb.length === 0) {
       const nextLine = lineFromHerb(herb, {
         process: child?.process ?? "",
@@ -114,31 +167,13 @@ export function FormulaEditorPage() {
       return;
     }
 
-    // 子项只补炮制或来源。没写的那一栏保持这一行原来的值
+    // 这味药已经在方里。改到还空着的那一行；再选本尊也会把上次的炮制和来源清掉
     const target = chooseHerbLine(sameHerb, child);
-    const nextProcess = child?.process || target.process;
-    const nextSource = child?.source || target.source;
-    const already = sameHerb.find(
-      (line) => line.process === nextProcess && line.source === nextSource,
-    );
-
-    // 再点本尊，或这一行已经是要选的炮制和来源，就回到它
-    if (!child || already) {
-      const focusLine = already ?? target;
-
-      window.setTimeout(() => {
-        doseRefs.current[focusLine.lineId]?.focus();
-      }, 0);
-
-      return;
-    }
 
     commit((sheet) => ({
       ...sheet,
       lines: sheet.lines.map((line) =>
-        line.lineId === target.lineId
-          ? { ...line, process: nextProcess, source: nextSource }
-          : line,
+        line.lineId === target.lineId ? applyHerbPickToLine(line, herb, child) : line,
       ),
     }));
 
@@ -176,6 +211,9 @@ export function FormulaEditorPage() {
 
   const draggingLine = current.lines.find((line) => line.lineId === draggingId) ?? null;
 
+  // 共几付、一日几剂、一次几剂写好后，下面算出一共几剂、一天几次和可服几天
+  const courseHint = formulaCourseHint(current);
+
   return (
     <div className={formulaPage.page()}>
       <CollectionHeader title="拟方" herbCount={herbCount} backTo="/formulas" />
@@ -185,16 +223,58 @@ export function FormulaEditorPage() {
 
         <div className={formulaPage.main()}>
           <div className={formulaPage.toolbar()}>
+            <label className={formulaPage.nameField()}>
+              <span>
+                处方名
+                <span className={formulaPage.required()} title="保存时必填" aria-hidden="true">
+                  *
+                </span>
+              </span>
+              <input
+                value={current.name ?? ""}
+                placeholder="例如桂枝汤"
+                aria-required="true"
+                className={formulaPage.input()}
+                onChange={(event) => commit((sheet) => ({ ...sheet, name: event.target.value }))}
+              />
+            </label>
+
             <label className={formulaPage.field()}>
-              共几剂
+              <span>
+                共几付
+                <span className={formulaPage.required()} title="保存时必填" aria-hidden="true">
+                  *
+                </span>
+              </span>
               <input
                 inputMode="numeric"
                 value={current.doseCount}
                 placeholder="7"
+                aria-required="true"
                 className={formulaPage.input()}
-                onChange={(event) =>
-                  commit((sheet) => ({ ...sheet, doseCount: event.target.value }))
-                }
+                onChange={(event) => commit((sheet) => ({ ...sheet, doseCount: event.target.value }))}
+              />
+            </label>
+
+            <label className={formulaPage.field()}>
+              一日几剂
+              <input
+                inputMode="decimal"
+                value={current.dailyDoses ?? ""}
+                placeholder="2"
+                className={formulaPage.input()}
+                onChange={(event) => commit((sheet) => ({ ...sheet, dailyDoses: event.target.value }))}
+              />
+            </label>
+
+            <label className={formulaPage.field()}>
+              一次几剂
+              <input
+                inputMode="decimal"
+                value={current.doseEach ?? ""}
+                placeholder="1"
+                className={formulaPage.input()}
+                onChange={(event) => commit((sheet) => ({ ...sheet, doseEach: event.target.value }))}
               />
             </label>
 
@@ -208,7 +288,17 @@ export function FormulaEditorPage() {
               />
             </label>
 
-            <p className={formulaPage.status()}>{isFormulaReady(current) ? "已拟" : "草稿"}</p>
+            <div className={formulaPage.saveBar()}>
+              <p className={formulaPage.status()}>{current.status === "saved" ? "已拟" : "草稿"}</p>
+              <button type="button" className={formulaPage.saveDraft()} onClick={handleSaveDraft}>
+                保存草稿
+              </button>
+              <button type="button" className={formulaPage.save()} onClick={handleSave}>
+                保存
+              </button>
+            </div>
+
+            {courseHint ? <p className={formulaPage.courseHint()}>{courseHint}</p> : null}
           </div>
 
           <div className={formulaPage.body()}>
@@ -232,7 +322,14 @@ export function FormulaEditorPage() {
                   <thead>
                     <tr className={formulaTable.head()}>
                       <th className={formulaTable.cell()}>药名</th>
-                      <th className={formulaTable.cell()}>剂量</th>
+                      <th className={formulaTable.cell()}>
+                        <span>
+                          剂量
+                          <span className={formulaPage.required()} title="保存时必填" aria-hidden="true">
+                            *
+                          </span>
+                        </span>
+                      </th>
                       <th className={formulaTable.cell()}>脚注</th>
                       <th className={formulaTable.cell()}>标准</th>
                       <th className={formulaTable.cell()}>炮制</th>
@@ -349,6 +446,28 @@ export function FormulaEditorPage() {
           </div>
         </div>
       </div>
+
+      {/* 保存结果不写在工具条上，用这一层挡住页面 */}
+      {dialog ? (
+        <div className={formulaPage.dialogBackdrop()}>
+          <button
+            type="button"
+            aria-label="关闭"
+            className={formulaPage.dialogScrim()}
+            onClick={() => setDialog(null)}
+          />
+
+          <div role="dialog" aria-modal="true" className={formulaPage.dialog()}>
+            <h2 className={formulaPage.dialogTitle()}>{dialog.title}</h2>
+            <p className={formulaPage.dialogBody()}>{dialog.body}</p>
+            <div className={formulaPage.dialogFooter()}>
+              <button type="button" className={formulaPage.save()} onClick={() => setDialog(null)}>
+                知道了
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

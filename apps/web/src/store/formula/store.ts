@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import type { FormulaSheet } from "@/types/formula";
+import type { FormulaSheet, FormulaSheetStatus } from "@/types/formula";
 
 import { loadFormulaSheets, saveFormulaSheets } from "./storage";
 
@@ -21,8 +21,12 @@ function createEmptySheet(): FormulaSheet {
     createdAt: now,
     updatedAt: now,
     doseCount: "",
+    dailyDoses: "",
+    doseEach: "",
+    name: "",
     usage: "",
     lines: [],
+    status: "draft" satisfies FormulaSheetStatus,
   };
 }
 

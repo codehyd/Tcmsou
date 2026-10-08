@@ -322,32 +322,37 @@ export function HerbNamePicker({
                       </span>
                     </button>
 
-                    {children.map((child) => (
-                      <button
-                        key={`${child.id}-${child.process}-${child.source}`}
-                        type="button"
-                        className={herbPicker.child()}
-                        onMouseDown={(event) => {
-                          event.preventDefault();
-                          onPick(herb, child);
-                          setKeyword("");
-                          setOpen(false);
-                        }}
-                      >
-                        <span className={herbPicker.childHead()}>
-                          <span>{child.name}</span>
-                          <span className={herbPicker.childMarks()}>
-                            <span className={herbPicker.childKind()}>{childKindLabel(child)}</span>
-                            {isChildTaken(herb.id, child) ? (
-                              <span className={herbPicker.taken()}>已在方中</span>
-                            ) : null}
-                          </span>
-                        </span>
-                        {child.functions.trim() ? (
-                          <span className={herbPicker.optionMeta()}>{child.functions}</span>
-                        ) : null}
-                      </button>
-                    ))}
+                    {children.length > 0 ? (
+                      <div className={herbPicker.childGroup()}>
+                        {children.map((child) => (
+                          <button
+                            key={`${child.id}-${child.process}-${child.source}`}
+                            type="button"
+                            className={herbPicker.child()}
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              onPick(herb, child);
+                              setKeyword("");
+                              setOpen(false);
+                            }}
+                          >
+                            <span className={herbPicker.childBody()}>
+                              <span className={herbPicker.childName()}>{child.name}</span>
+                              {child.functions.trim() ? (
+                                <span className={herbPicker.optionMeta()}>{child.functions}</span>
+                              ) : null}
+                            </span>
+                            {/* 右栏只标这一条是炮制还是来源，和左边药名分开 */}
+                            <span className={herbPicker.childRail()}>
+                              <span className={herbPicker.childKind()}>{childKindLabel(child)}</span>
+                              {isChildTaken(herb.id, child) ? (
+                                <span className={herbPicker.taken()}>已在方中</span>
+                              ) : null}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                   </li>
                   );
                 })

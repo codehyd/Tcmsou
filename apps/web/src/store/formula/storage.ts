@@ -1,4 +1,5 @@
 import { FORMULA_SHEETS_KEY } from "@/constants/formula";
+import { isFormulaReady } from "@/lib/formula";
 import {
   FORMULA_FOOTNOTES,
   FORMULA_PROCESSES,
@@ -7,6 +8,7 @@ import {
   type FormulaProcessId,
   type FormulaStandardId,
   type FormulaSheet,
+  type FormulaSheetStatus,
 } from "@/types/formula";
 import { utils } from "@/utils";
 
@@ -89,14 +91,33 @@ function normalizeSheet(value: unknown): FormulaSheet | null {
       })
     : [];
 
-  return {
+  const next: FormulaSheet = {
     id: sheet.id,
     createdAt: typeof sheet.createdAt === "string" ? sheet.createdAt : new Date().toISOString(),
     updatedAt: typeof sheet.updatedAt === "string" ? sheet.updatedAt : new Date().toISOString(),
     doseCount: typeof sheet.doseCount === "string" ? sheet.doseCount : "",
+    dailyDoses: typeof sheet.dailyDoses === "string" ? sheet.dailyDoses : "",
+    doseEach: typeof sheet.doseEach === "string" ? sheet.doseEach : "",
+    name: typeof sheet.name === "string" ? sheet.name : "",
     usage: typeof sheet.usage === "string" ? sheet.usage : "",
     lines,
+    // 先占个草稿，下面再按存过的状态或旧数据是否开齐来改
+    status: "draft",
   };
+
+  return {
+    ...next,
+    status: readStatus(sheet.status, next),
+  };
+}
+
+// 认保存状态。旧数据没写这个字段时，处方名、剂数和剂量都齐了就当成已经保存过
+function readStatus(value: unknown, sheet: FormulaSheet): FormulaSheetStatus {
+  if (value === "saved" || value === "draft") {
+    return value;
+  }
+
+  return isFormulaReady(sheet) ? "saved" : "draft";
 }
 
 // 打开页面时读拟方。没有或坏了就当一份都没有
