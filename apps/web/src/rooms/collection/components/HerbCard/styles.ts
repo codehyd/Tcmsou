@@ -2,12 +2,12 @@ import { cva } from "class-variance-authority";
 
 // 一张药卡的分栏，悬停亮边写在卡壳上
 export const herbCard = {
-  // 整张卡是门
-  link: cva("block min-w-0"),
+  // 整张卡的可点区域。编辑和删除在它外面，避免点按钮也进详情
+  link: cva("flex min-w-0 flex-1"),
 
   // 左字右图。当前这味多一圈青边，像货架上被抽出来的那一格
   article: cva(
-    "flex min-h-[132px] min-w-0 max-w-full overflow-hidden rounded-sm border border-cabinet-border bg-cabinet transition-colors hover:border-intel/40 sm:min-h-[148px] 2xl:min-h-[160px]",
+    "flex min-h-[132px] min-w-0 max-w-full flex-col overflow-hidden rounded-sm border border-cabinet-border bg-cabinet transition-colors hover:border-intel/40 sm:min-h-[148px] 2xl:min-h-[160px]",
     {
       variants: {
         active: {
@@ -33,7 +33,7 @@ export const herbCard = {
   // 拼音小字
   pinyin: cva("mt-1 truncate text-xs tracking-wide text-muted-foreground uppercase"),
 
-  // 并进来的植物来源，比如蒙古黄芪。没有就不占一行
+  // 挂在这味药下面的炮制或来源，比如炙黄芪、蒙古黄芪。没有就不占一行
   sources: cva("mt-1 truncate text-xs text-muted-foreground"),
 
   // 功效最多两行，中文没空格也要折行
@@ -46,4 +46,11 @@ export const herbCard = {
 
   // 有照片时铺满这一格
   image: cva("h-full w-full object-contain"),
+
+  // 编辑、删除贴在卡底，不跟药名抢一行
+  actions: cva("flex shrink-0 items-center gap-3 border-t border-white/10 px-2.5 py-1.5"),
+
+  edit: cva("text-xs text-muted-foreground hover:text-intel"),
+
+  remove: cva("text-xs text-muted-foreground hover:text-red-300"),
 };

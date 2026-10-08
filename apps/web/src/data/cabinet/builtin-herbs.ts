@@ -6,7 +6,7 @@ export type BuiltinHerbInput = Omit<Herb, "image" | "origin" | "unit"> & {
   unit?: string;
 };
 
-// 自带的 30 味药原文。herbs.ts 遍历这份清单，补上照片和来源
+// 自带药原文。herbs.ts 遍历这份清单，补上照片和来源。蒙古黄芪这类来源名会挂到本尊下面，柜上不另开一张卡
 export const BUILTIN_HERB_INPUTS: BuiltinHerbInput[] = [
   // 解表：发散风寒 / 发散风热
   {
@@ -275,6 +275,18 @@ export const BUILTIN_HERB_INPUTS: BuiltinHerbInput[] = [
     id: "huangqi",
     name: "黄芪",
     pinyin: "huangqi",
+    categoryId: "bu_xu",
+    subclassId: "bu_qi",
+    nature: "甘，微温",
+    meridians: "肺、脾经",
+    functions: "补气升阳，固表止汗，利水消肿。",
+    indications: "气虚乏力，食少便溏，中气下陷。",
+  },
+  // 黄芪的植物来源。末尾对上黄芪，收藏柜会收进黄芪的来源子项
+  {
+    id: "mengguhuangqi",
+    name: "蒙古黄芪",
+    pinyin: "mengguhuangqi",
     categoryId: "bu_xu",
     subclassId: "bu_qi",
     nature: "甘，微温",

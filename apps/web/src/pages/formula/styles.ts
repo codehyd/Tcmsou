@@ -29,16 +29,30 @@ export const formulaPage = {
 };
 
 export const formulaTable = {
-  // 分开边框，拖动时整行的位移才不会被表格粘住
-  table: cva("w-full min-w-[520px] border-separate border-spacing-0 text-sm"),
+  // 列宽按下面的 col 固定，边框分开。点药名打开下拉时，不再按输入框把表格撑开
+  table: cva("w-full min-w-[520px] table-fixed border-separate border-spacing-0 text-sm"),
+
+  colName: cva("w-[26%]"),
+
+  colDose: cva("w-[16%]"),
+
+  colSelect: cva("w-[16%]"),
+
+  colAction: cva("w-[10%]"),
 
   head: cva("border-b border-white/10 text-left text-xs text-muted-foreground"),
 
   cell: cva("border-b border-white/6 px-2 py-2 align-middle"),
 
+  // 药名列锁在 col 的宽度里。名字长了就省略，不把旁边的列挤开
+  nameCellTd: cva("max-w-0 overflow-hidden border-b border-white/6 px-2 py-2 align-middle"),
+
   name: cva("font-medium"),
 
-  nameCell: cva("flex items-center gap-1.5"),
+  // 药名可点。点开后下拉挂在按钮旁边，格子里仍是这一行的药名
+  nameButton: cva("min-w-0 flex-1 truncate text-left font-medium hover:text-intel"),
+
+  nameCell: cva("flex min-w-0 items-center gap-1.5"),
 
   // 只有这个把手能拖。按住后整行会抽出来，不拖输入框和删除
   dragHandle: cva(
@@ -60,22 +74,6 @@ export const formulaTable = {
   doseRow: cva("flex items-center gap-2"),
 
   unit: cva("text-muted-foreground"),
-
-  // 脚注下拉。系统自带箭头贴边，这里改成自己画的箭头，右边留出空隙
-  selectWrap: cva("relative inline-flex"),
-
-  select: cva(
-    "h-8 min-w-20 appearance-none rounded-sm border border-white/15 bg-background pr-9 pl-2.5 text-sm outline-none focus:border-intel/50",
-  ),
-
-  // 来源名字比炮制长，下拉宽一些才装得下蒙古黄芪这类
-  sourceSelect: cva(
-    "h-8 min-w-28 appearance-none rounded-sm border border-white/15 bg-background pr-9 pl-2.5 text-sm outline-none focus:border-intel/50",
-  ),
-
-  selectIcon: cva(
-    "pointer-events-none absolute top-1/2 right-3 size-3.5 -translate-y-1/2 text-muted-foreground",
-  ),
 
   iconButton: cva(
     "rounded-sm border border-white/10 px-2 py-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30",

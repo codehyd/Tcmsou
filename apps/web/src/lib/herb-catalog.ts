@@ -11,6 +11,7 @@ import {
   type Herb,
   type HerbCategory,
   type HerbCategoryId,
+  type HerbChild,
   type HerbSort,
   type HerbSubclass,
   type HerbSubclassId,
@@ -41,6 +42,16 @@ export function getHerbCategory(categoryId: HerbCategoryId): HerbCategory | unde
 // 按编号找出二级小类，详情上的「发散风寒药」靠它
 export function getHerbSubclass(subclassId: HerbSubclassId): HerbSubclass | undefined {
   return HERB_SUBCLASSES.find((subclass) => subclass.id === subclassId);
+}
+
+// 这一味药下面的炮制品，比如炙黄芪。拟方选中后，炮制栏写炙
+export function getProcessChildren(herb: Herb): HerbChild[] {
+  return (herb.children ?? []).filter((child) => child.process);
+}
+
+// 这一味药下面的植物来源，比如蒙古黄芪。已经带炮制的不放这里，避免和炮制子项各写一遍
+export function getSourceChildren(herb: Herb): HerbChild[] {
+  return (herb.children ?? []).filter((child) => child.source && !child.process);
 }
 
 // 卡片上贴更细的那张签：麻黄贴发散风寒药，找不到节才退回解表药
@@ -156,7 +167,14 @@ export function filterHerbs(options: {
         tag.includes(needle) ||
         subclassTag.includes(needle) ||
         herb.aliases?.some((alias) => alias.toLowerCase().includes(needle)) ||
-        herb.sources?.some((source) => source.toLowerCase().includes(needle))
+        herb.sources?.some((source) => source.toLowerCase().includes(needle)) ||
+        herb.children?.some(
+          (child) =>
+            child.name.toLowerCase().includes(needle) ||
+            child.pinyin.toLowerCase().includes(needle) ||
+            child.functions.toLowerCase().includes(needle) ||
+            child.source.toLowerCase().includes(needle),
+        )
       );
     });
   }

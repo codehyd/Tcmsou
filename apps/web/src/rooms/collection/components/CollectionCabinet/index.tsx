@@ -19,6 +19,8 @@ interface CollectionCabinetProps {
   herbs: Herb[];
   allCount: number;
   countsByCategory: Record<string, number>;
+  onEdit?: (herb: Herb) => void;
+  onDelete?: (herb: Herb) => void;
 }
 
 // 右侧主舞台：搜索、分类签、收藏柜网格都在这一列里滚
@@ -34,6 +36,8 @@ export function CollectionCabinet({
   herbs,
   allCount,
   countsByCategory,
+  onEdit,
+  onDelete,
 }: CollectionCabinetProps) {
   // 柜体自己是滚动盒子。等这根滚筒挂上 DOM 再画药卡，否则虚拟列表会以为窗口高度是 0
   const [scroller, setScroller] = useState<HTMLElement | null>(null);
@@ -90,7 +94,14 @@ export function CollectionCabinet({
         </div>
       </div>
 
-      {scroller ? <HerbGrid herbs={herbs} scrollElement={scroller} /> : null}
+      {scroller ? (
+        <HerbGrid
+          herbs={herbs}
+          scrollElement={scroller}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
+      ) : null}
     </main>
   );
 }

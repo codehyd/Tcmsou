@@ -45,7 +45,12 @@ export function loadImportState(): CabinetImportState {
       }
     }
 
-    return { extraHerbs, overrides };
+    // 旧存档没有这份清单，就当还没删过自带药
+    const removedIds = Array.isArray(record.removedIds)
+      ? record.removedIds.filter((id): id is string => typeof id === "string")
+      : [];
+
+    return { extraHerbs, overrides, removedIds };
   } catch {
     return EMPTY_IMPORT_STATE;
   }

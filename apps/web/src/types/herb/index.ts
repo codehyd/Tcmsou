@@ -1,5 +1,6 @@
 // 类型总出口。页面仍从 @/types/herb 引入，具体定义在各自同名文件里
 export type { Herb } from "@/types/herb/Herb";
+export type { HerbChild } from "@/types/herb/HerbChild";
 export type { HerbOrigin } from "@/types/herb/HerbOrigin";
 export type { HerbSource } from "@/types/herb/HerbSource";
 export type { CustomHerbDraft } from "@/types/herb/CustomHerbDraft";

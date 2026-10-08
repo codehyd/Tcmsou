@@ -11,16 +11,22 @@ export function useCabinetHerbs(): Herb[] {
   // 记录默认药材 需要与新导入的药材做区分
   const overrides = useHerbCabinetStore((state) => state.overrides);
 
-  // 导入的药材
+  // 导入的药材和手写添加的药材
   const extraHerbs = useHerbCabinetStore((state) => state.extraHerbs);
 
-  // 合并药材数据 默认药材 + 导入的药材
-  return useMemo(() => {
-    const builtins = HERBS.map((herb) => overrides[herb.id] ?? herb);
+  // 已经从柜里拿走的自带药编号
+  const removedIds = useHerbCabinetStore((state) => state.removedIds);
 
-    // 炙黄芪、蒙古黄芪这类名字并进本尊，列表和选药都只看到黄芪
+  // 合并药材数据：还留着的自带药 + 后加的药
+  return useMemo(() => {
+    const removed = new Set(removedIds ?? []);
+    const builtins = HERBS.filter((herb) => !removed.has(herb.id)).map(
+      (herb) => overrides[herb.id] ?? herb,
+    );
+
+    // 炙黄芪挂在黄芪的炮制子项下，蒙古黄芪挂在来源子项下。列表只看到黄芪
     return groupCabinetHerbs([...builtins, ...extraHerbs]);
-  }, [extraHerbs, overrides]);
+  }, [extraHerbs, overrides, removedIds]);
 }
 
 export { useHerbCabinetStore };

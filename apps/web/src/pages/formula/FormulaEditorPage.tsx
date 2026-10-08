@@ -4,20 +4,37 @@ import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-ki
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import { Navigate, useParams } from "react-router";
 
-import type { Herb } from "@/types/herb";
-import type { FormulaProcessId, FormulaSheet, FormulaStandardId } from "@/types/formula";
+import type { Herb, HerbChild } from "@/types/herb";
+import type { FormulaLine, FormulaProcessId, FormulaSheet, FormulaStandardId } from "@/types/formula";
 
 import { CollectionHeader } from "@/rooms/collection/components/CollectionHeader";
 import { CollectionNavRail } from "@/rooms/collection/components/CollectionNavRail";
 import { FormulaLinePreview, FormulaSortableRow } from "@/rooms/formula/components/FormulaSortableRow";
 import { HerbNamePicker } from "@/rooms/formula/components/HerbNamePicker";
 import { alignFormulaLineName } from "@/lib/herb-identity";
-import { isFormulaReady, lineFromHerb } from "@/lib/formula";
+import { applyHerbPickToLine, isFormulaReady, lineFromHerb } from "@/lib/formula";
 import { countAllHerbs } from "@/lib/herb-catalog";
 import { useCabinetHerbs } from "@/store/herb-cabinet";
 import { useFormulaStore } from "@/store/formula";
 
 import { formulaPage, formulaTable } from "./styles";
+
+// 这味药已经在方里时，子项写到还空着的那一行。每一栏都填过，就改最后一行
+function chooseHerbLine(lines: FormulaLine[], child?: HerbChild) {
+  if (!child) {
+    return lines.find((line) => !line.process && !line.source) ?? lines[lines.length - 1];
+  }
+
+  if (child.process && !child.source) {
+    return lines.find((line) => !line.process) ?? lines[lines.length - 1];
+  }
+
+  if (child.source && !child.process) {
+    return lines.find((line) => !line.source) ?? lines[lines.length - 1];
+  }
+
+  return lines[lines.length - 1];
+}
 
 // 打开一张拟方，在同一张上改剂数、用法和每一味药
 export function FormulaEditorPage() {
@@ -67,36 +84,66 @@ export function FormulaEditorPage() {
     updateSheet(current.id, change);
   }
 
-  // 同一味药、炮制和来源都空着的那一行还在，就回到它。否则再开一行，方便生和炙各写一行
-  function handlePick(herb: Herb) {
-    const existing = current.lines.find(
-      (line) => line.herbId === herb.id && !line.process && !line.source,
-    );
+  // 选本尊就只写药名。这味药已经在方里时，再选炙黄芪只改这一行的炮制，不另起一行
+  function handlePick(herb: Herb, child?: HerbChild) {
+    const sameHerb = current.lines.filter((line) => line.herbId === herb.id);
 
-    if (existing) {
-      // 等选药列表收起后再聚焦，避免列表被拆掉时把焦点带走
+    // 方里还没有这味药，才新开一行
+    if (sameHerb.length === 0) {
+      const nextLine = lineFromHerb(herb, {
+        process: child?.process ?? "",
+        source: child?.source ?? "",
+        lineKey: child?.id ?? "base",
+      });
+
+      commit((sheet) => {
+        if (sheet.lines.some((line) => line.herbId === herb.id)) {
+          return sheet;
+        }
+
+        return {
+          ...sheet,
+          lines: [...sheet.lines, nextLine],
+        };
+      });
+
       window.setTimeout(() => {
-        doseRefs.current[existing.lineId]?.focus();
+        doseRefs.current[nextLine.lineId]?.focus();
       }, 0);
 
       return;
     }
 
-    const nextLine = lineFromHerb(herb);
+    // 子项只补炮制或来源。没写的那一栏保持这一行原来的值
+    const target = chooseHerbLine(sameHerb, child);
+    const nextProcess = child?.process || target.process;
+    const nextSource = child?.source || target.source;
+    const already = sameHerb.find(
+      (line) => line.process === nextProcess && line.source === nextSource,
+    );
 
-    commit((sheet) => {
-      if (sheet.lines.some((line) => line.herbId === herb.id && !line.process && !line.source)) {
-        return sheet;
-      }
+    // 再点本尊，或这一行已经是要选的炮制和来源，就回到它
+    if (!child || already) {
+      const focusLine = already ?? target;
 
-      return {
-        ...sheet,
-        lines: [...sheet.lines, nextLine],
-      };
-    });
+      window.setTimeout(() => {
+        doseRefs.current[focusLine.lineId]?.focus();
+      }, 0);
+
+      return;
+    }
+
+    commit((sheet) => ({
+      ...sheet,
+      lines: sheet.lines.map((line) =>
+        line.lineId === target.lineId
+          ? { ...line, process: nextProcess, source: nextSource }
+          : line,
+      ),
+    }));
 
     window.setTimeout(() => {
-      doseRefs.current[nextLine.lineId]?.focus();
+      doseRefs.current[target.lineId]?.focus();
     }, 0);
   }
 
@@ -174,6 +221,14 @@ export function FormulaEditorPage() {
             >
               <div className={formulaPage.tableScroll()}>
                 <table className={formulaTable.table()}>
+                  <colgroup>
+                    <col className={formulaTable.colName()} />
+                    <col className={formulaTable.colDose()} />
+                    <col className={formulaTable.colSelect()} />
+                    <col className={formulaTable.colSelect()} />
+                    <col className={formulaTable.colSelect()} />
+                    <col className={formulaTable.colAction()} />
+                  </colgroup>
                   <thead>
                     <tr className={formulaTable.head()}>
                       <th className={formulaTable.cell()}>药名</th>
@@ -181,7 +236,6 @@ export function FormulaEditorPage() {
                       <th className={formulaTable.cell()}>脚注</th>
                       <th className={formulaTable.cell()}>标准</th>
                       <th className={formulaTable.cell()}>炮制</th>
-                      <th className={formulaTable.cell()}>来源</th>
                       <th className={formulaTable.cell()}>操作</th>
                     </tr>
                   </thead>
@@ -195,7 +249,12 @@ export function FormulaEditorPage() {
                         <FormulaSortableRow
                           key={line.lineId}
                           line={line}
-                          sources={herbs.find((herb) => herb.id === line.herbId)?.sources ?? []}
+                          herbs={herbs}
+                          takenLines={current.lines.map((item) => ({
+                            herbId: item.herbId,
+                            process: item.process,
+                            source: item.source,
+                          }))}
                           doseRef={(node) => {
                             doseRefs.current[line.lineId] = node;
                           }}
@@ -223,14 +282,18 @@ export function FormulaEditorPage() {
                               ),
                             }))
                           }
-                          onSourceChange={(source) =>
+                          onReplace={(herb, child) => {
                             commit((sheet) => ({
                               ...sheet,
                               lines: sheet.lines.map((item) =>
-                                item.lineId === line.lineId ? { ...item, source } : item,
+                                item.lineId === line.lineId ? applyHerbPickToLine(item, herb, child) : item,
                               ),
-                            }))
-                          }
+                            }));
+
+                            window.setTimeout(() => {
+                              doseRefs.current[line.lineId]?.focus();
+                            }, 0);
+                          }}
                           onFootnoteChange={(footnote) =>
                             commit((sheet) => ({
                               ...sheet,
@@ -250,10 +313,14 @@ export function FormulaEditorPage() {
                     </SortableContext>
 
                     <tr>
-                      <td className={formulaTable.cell()} colSpan={7}>
+                      <td className={formulaTable.cell()} colSpan={6}>
                         <HerbNamePicker
                           herbs={herbs}
-                          takenHerbIds={current.lines.map((line) => line.herbId)}
+                          takenLines={current.lines.map((line) => ({
+                            herbId: line.herbId,
+                            process: line.process,
+                            source: line.source,
+                          }))}
                           onPick={handlePick}
                         />
                       </td>

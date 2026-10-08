@@ -21,7 +21,7 @@ export function FormulaListPage() {
   const updateSheet = useFormulaStore((state) => state.updateSheet);
   const navigate = useNavigate();
 
-  // 列表上的药名也收成药材名。打开某一张之前，炙黄芪会先变成黄芪
+  // 列表上的药名收成药材名。炙黄芪会变成药名黄芪，炮制栏写成炙
   useEffect(() => {
     const knownNames = new Set(herbs.map((herb) => herb.name));
 

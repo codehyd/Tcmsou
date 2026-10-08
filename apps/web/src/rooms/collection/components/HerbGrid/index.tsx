@@ -12,6 +12,9 @@ interface HerbGridProps {
   activeId?: string;
   locateActive?: boolean;
   pinEpoch?: number;
+  // 收藏柜才传。详情换药架不放编辑和删除
+  onEdit?: (herb: Herb) => void;
+  onDelete?: (herb: Herb) => void;
 }
 
 // 宽规则写在前面：2560 六列，窄到手机才剩一列，和样式表同一套门槛
@@ -31,6 +34,8 @@ export function HerbGrid({
   activeId,
   locateActive = false,
   pinEpoch = 0,
+  onEdit,
+  onDelete,
 }: HerbGridProps) {
   const columns = useMatchCount(GRID_COLUMNS, 1);
 
@@ -50,7 +55,14 @@ export function HerbGrid({
       pinAlways={locateActive}
       pinEpoch={pinEpoch}
       getKey={(herb) => herb.id}
-      renderItem={(herb) => <HerbCard herb={herb} active={herb.id === activeId} />}
+      renderItem={(herb) => (
+        <HerbCard
+          herb={herb}
+          active={herb.id === activeId}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
+      )}
     />
   );
 }

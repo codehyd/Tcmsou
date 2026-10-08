@@ -1,5 +1,6 @@
 import type { HerbCategoryId } from "@/types/herb/category/HerbCategoryId";
 import type { HerbSubclassId } from "@/types/herb/category/HerbSubclassId";
+import type { HerbChild } from "@/types/herb/HerbChild";
 import type { HerbOrigin } from "@/types/herb/HerbOrigin";
 import type { HerbSource } from "@/types/herb/HerbSource";
 
@@ -38,11 +39,14 @@ export interface Herb {
   // unit 是这味药的剂量单位。没写时按克
   unit?: string;
 
-  // aliases 是已经归进这一味的原名，比如炙黄芪。列表里不再单独占一条
+  // aliases 是子项原名，比如炙黄芪、蒙古黄芪。搜索用，列表不再单独占一条
   aliases?: string[];
 
-  // sources 是可选的植物来源或货品名，比如蒙古黄芪。空着表示没单标来源
+  // sources 是植物来源子项的货品名，比如蒙古黄芪。拟方的来源栏用这份清单
   sources?: string[];
+
+  // children 是挂在这一味下面的炮制品和植物来源。各自留着功效，不另开一张卡
+  children?: HerbChild[];
 
   // mergedIds 是被并进这一条的原编号。旧链接还能打开归并后的这味药
   mergedIds?: string[];

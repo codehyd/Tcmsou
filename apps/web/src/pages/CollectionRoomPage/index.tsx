@@ -5,6 +5,7 @@ import { CategorySidebar } from "@/rooms/collection/components/CategorySidebar";
 import { CollectionCabinet } from "@/rooms/collection/components/CollectionCabinet";
 import { CollectionHeader } from "@/rooms/collection/components/CollectionHeader";
 import { CollectionNavRail } from "@/rooms/collection/components/CollectionNavRail";
+import { HerbDeleteDialog, HerbFormDialog } from "@/rooms/collection/components/HerbFormDialog";
 import { ImportHerbDialog } from "@/rooms/collection/components/ImportHerbDialog";
 import {
   countAllHerbs,
@@ -12,14 +13,16 @@ import {
   filterHerbs,
   getVisibleHerbCategories,
 } from "@/lib/herb-catalog";
+import { HERBS } from "@/data/catalog/herbs";
 import {
   buildHerbPackFromCabinet,
   downloadHerbPackFile,
 } from "@/lib/herb-import";
-import { useCabinetHerbs } from "@/store/herb-cabinet";
+import { useCabinetHerbs, useHerbCabinetStore } from "@/store/herb-cabinet";
 import {
   ALL_CATEGORY_ID,
   type CategoryFilterId,
+  type Herb,
   type HerbSort,
 } from "@/types/herb";
 
@@ -30,7 +33,9 @@ export function CollectionRoomPage() {
 
   // 中药功效分类 比如解表 补益等
   const categories = useMemo(() => getVisibleHerbCategories(herbs), [herbs]);
-  console.log('categories', categories);
+  const addCustomHerb = useHerbCabinetStore((state) => state.addCustomHerb);
+  const updateHerb = useHerbCabinetStore((state) => state.updateHerb);
+  const removeHerb = useHerbCabinetStore((state) => state.removeHerb);
 
   // 记下用户点了哪一类，没点就当逛全部，像先站在库房门口
   const [categoryId, setCategoryId] =
@@ -44,6 +49,13 @@ export function CollectionRoomPage() {
 
   // 药包窗开没开，像库房侧门的插销；关掉就不挡货架
   const [importOpen, setImportOpen] = useState(false);
+
+  // 新增窗开着时是空。编辑窗开着时记下正在改的那一味
+  const [formHerb, setFormHerb] = useState<Herb | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+
+  // 删除前先问一句。空着表示确认窗关着
+  const [pendingDelete, setPendingDelete] = useState<Herb | null>(null);
 
   // 顶栏和「全部」那一行要报的现货数，不是「收齐了」的分数
   const allCount = useMemo(() => countAllHerbs(herbs), [herbs]);
@@ -70,6 +82,10 @@ export function CollectionRoomPage() {
     <div className={collectionRoom.page()}>
       <CollectionHeader
         herbCount={allCount}
+        onCreateClick={() => {
+          setFormHerb(null);
+          setFormOpen(true);
+        }}
         onImportClick={() => setImportOpen(true)}
         onExportClick={handleExport}
       />
@@ -97,6 +113,19 @@ export function CollectionRoomPage() {
           herbs={visibleHerbs}
           allCount={allCount}
           countsByCategory={countsByCategory}
+          onEdit={(herb) => {
+            // 柜上看到的是归并后的卡片。表单改库存里的原条，避免把子项功效写成空白
+            const { extraHerbs, overrides } = useHerbCabinetStore.getState();
+            const stored =
+              extraHerbs.find((item) => item.id === herb.id) ??
+              overrides[herb.id] ??
+              HERBS.find((item) => item.id === herb.id) ??
+              herb;
+
+            setFormHerb(stored);
+            setFormOpen(true);
+          }}
+          onDelete={setPendingDelete}
         />
       </div>
 
@@ -105,6 +134,31 @@ export function CollectionRoomPage() {
         open={importOpen}
         herbs={herbs}
         onClose={() => setImportOpen(false)}
+      />
+
+      <HerbFormDialog
+        open={formOpen}
+        herb={formHerb}
+        herbs={herbs}
+        onClose={() => setFormOpen(false)}
+        onSubmit={(draft) => {
+          if (formHerb) {
+            updateHerb(formHerb.id, draft);
+          } else {
+            addCustomHerb(draft);
+          }
+
+          setFormOpen(false);
+        }}
+      />
+
+      <HerbDeleteDialog
+        herb={pendingDelete}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={(herb) => {
+          removeHerb(herb);
+          setPendingDelete(null);
+        }}
       />
     </div>
   );

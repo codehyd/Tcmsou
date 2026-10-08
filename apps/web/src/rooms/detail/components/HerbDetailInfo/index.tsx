@@ -1,5 +1,8 @@
-import { getHerbCategory, getHerbSubclass } from "@/lib/herb-catalog";
-import type { Herb } from "@/types/herb";
+import { useState } from "react";
+import { ChevronRight } from "lucide-react";
+
+import { getHerbCategory, getHerbSubclass, getProcessChildren, getSourceChildren } from "@/lib/herb-catalog";
+import type { Herb, HerbChild } from "@/types/herb";
 
 // 左边说明书只要认得当前这味药，添药入口先不放在这块牌子上
 interface HerbDetailInfoProps {
@@ -15,6 +18,10 @@ export function HerbDetailInfo({ herb }: HerbDetailInfoProps) {
 
   // 节和章同名就只亮一行，免得温里药写两遍
   const showSubclass = Boolean(subclass && subclass.tag !== category?.tag);
+
+  // 炮制品和植物来源挂在这一味下面，各自留着功效
+  const processChildren = getProcessChildren(herb);
+  const sourceChildren = getSourceChildren(herb);
 
   return (
     <section className="w-full min-w-0 text-foreground">
@@ -45,7 +52,81 @@ export function HerbDetailInfo({ herb }: HerbDetailInfoProps) {
 
         <InfoBlock title="主治" body={herb.indications} wide />
       </div>
+
+      {processChildren.length > 0 ? (
+        <ChildGroup title="炮制" items={processChildren} />
+      ) : null}
+
+      {sourceChildren.length > 0 ? (
+        <ChildGroup title="植物来源" items={sourceChildren} />
+      ) : null}
     </section>
+  );
+}
+
+// 说明书下半段：炮制、植物来源先只列名字，点开才看这一条自己的说明
+function ChildGroup({ title, items }: { title: string; items: HerbChild[] }) {
+  return (
+    <div className="px-4 pb-6 lg:px-8">
+      <p className="text-xs font-medium tracking-[0.22em] text-intel">{title}</p>
+
+      <ul className="mt-2">
+        {items.map((child) => (
+          <ChildRow key={`${child.id}-${child.name}`} child={child} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// 子类一行。默认只写名字，点开才摊开性味、归经、功效、主治
+function ChildRow({ child }: { child: HerbChild }) {
+  // 这一行开没开。默认关着，避免一进详情就把子项说明铺满
+  const [open, setOpen] = useState(false);
+
+  // 没有可展开的说明时，这一行只作分类名，不再做成空按钮
+  const hasDetail = Boolean(
+    child.nature.trim() ||
+      child.meridians.trim() ||
+      child.functions.trim() ||
+      child.indications.trim() ||
+      (child.process && child.source),
+  );
+
+  return (
+    <li className="border-b border-white/10">
+      {hasDetail ? (
+        <button
+          type="button"
+          aria-expanded={open}
+          className={
+            open
+              ? "flex w-full items-center justify-between border-l-2 border-intel py-2.5 pr-1 pl-3 text-left text-sm text-foreground"
+              : "flex w-full items-center justify-between border-l-2 border-transparent py-2.5 pr-1 pl-3 text-left text-sm text-foreground/75 hover:text-foreground"
+          }
+          onClick={() => setOpen((value) => !value)}
+        >
+          <span>{child.name}</span>
+          <ChevronRight className={open ? "size-3.5 shrink-0 rotate-90 text-intel" : "size-3.5 shrink-0 text-muted-foreground"} />
+        </button>
+      ) : (
+        <p className="border-l-2 border-transparent py-2.5 pr-1 pl-3 text-sm text-foreground/75">{child.name}</p>
+      )}
+
+      {open ? (
+        <div className="grid grid-cols-1 gap-4 py-3 pr-1 pl-5 lg:grid-cols-2 lg:gap-x-10">
+          {child.process && child.source ? <InfoBlock title="植物来源" body={child.source} /> : null}
+
+          <InfoBlock title="性味" body={child.nature} />
+
+          <InfoBlock title="归经" body={child.meridians} />
+
+          <InfoBlock title="功效" body={child.functions} wide />
+
+          <InfoBlock title="主治" body={child.indications} wide />
+        </div>
+      ) : null}
+    </li>
   );
 }
 

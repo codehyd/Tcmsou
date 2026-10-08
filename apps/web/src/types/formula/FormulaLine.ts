@@ -4,7 +4,7 @@ import type { FormulaStandardId } from "@/types/formula/FormulaStandard";
 
 // 拟方里的一行。药名和单位在选药时抄下来，药柜以后改字不会改这行
 export interface FormulaLine {
-  // lineId 是这一行自己的编号。同一味药炮制或来源不同时可以各占一行
+  // lineId 是这一行自己的编号。同一味药在一张方里只占一行，炮制和来源写在这一行上
   lineId: string;
 
   // herbId 是药柜里这味药的编号

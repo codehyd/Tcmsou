@@ -10,6 +10,7 @@ interface CollectionHeaderProps {
   backTo?: string;
   onImportClick?: () => void;
   onExportClick?: () => void;
+  onCreateClick?: () => void;
 }
 
 // 收藏室门口的横条：左边是房间名，右边是本室现货
@@ -20,6 +21,7 @@ export function CollectionHeader({
   backTo,
   onImportClick,
   onExportClick,
+  onCreateClick,
 }: CollectionHeaderProps) {
   // 有退路就把箭头做成门，没有就当装饰，像还没通电的电梯按钮
   const titleBlock = (
@@ -43,13 +45,15 @@ export function CollectionHeader({
 
       <div className={roomHeader.actions()}>
         {/* 来源说明单独开门，顶栏一直在，列表和详情都能找到 */}
-        <Link to="/formulas" className={roomQuietLink()}>
-          拟方
-        </Link>
-
         <Link to="/sources" className={roomQuietLink()}>
           来源
         </Link>
+
+        {onCreateClick ? (
+          <button type="button" onClick={onCreateClick} className={roomAction()}>
+            新增
+          </button>
+        ) : null}
 
         {/* 导出把本室账本复印走，导入再把外面的表搬进来，两件事分开免得按错门 */}
         {onExportClick ? (

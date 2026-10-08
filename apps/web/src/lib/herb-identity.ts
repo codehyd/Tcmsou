@@ -1,4 +1,4 @@
-import type { Herb } from "@/types/herb";
+import type { Herb, HerbChild } from "@/types/herb";
 import type { FormulaLine, FormulaProcessId } from "@/types/formula";
 
 // 药名前面一眼能认出的炮制。剩下至少两个字才拆，避免把单字药名拆没
@@ -46,7 +46,7 @@ export function interpretHerbName(name: string, knownNames: Set<string>) {
   };
 }
 
-// 收藏和选药看到的清单。同一味药只留一条，炮制品和来源名并进本尊
+// 收藏和选药看到的清单。同一味药只留一张卡，炮制品和植物来源挂在它下面
 export function groupCabinetHerbs(herbs: Herb[]): Herb[] {
   const knownNames = new Set(herbs.map((herb) => herb.name.trim()).filter(Boolean));
 
@@ -73,7 +73,7 @@ export function groupCabinetHerbs(herbs: Herb[]): Herb[] {
   return order.map((name) => mergeHerbGroup(name, groups.get(name) ?? [], knownNames));
 }
 
-// 拟方上的旧药名如果写成了炙黄芪、蒙古黄芪，收成药材名，炮制和来源挪到各自的栏
+// 拟方上的旧药名如果写成了炙黄芪、蒙古黄芪，药名收成本尊，炮制和来源挪到各自的栏
 export function alignFormulaLineName(line: FormulaLine, knownNames: Set<string>): FormulaLine {
   const reading = interpretHerbName(line.name, knownNames);
   const process = line.process || reading.process;
@@ -160,26 +160,134 @@ function matchSourceBase(name: string, knownNames: Set<string>) {
   return base;
 }
 
-// 一组原名收成一条。本尊的功效和编号留下，其余名字记成别名或来源
+// 一组原名收成一张卡。本尊留下，炮制品和植物来源各自带着功效挂到子项
 function mergeHerbGroup(canonical: string, items: Herb[], knownNames: Set<string>): Herb {
-  const primary = items.find((item) => item.name.trim() === canonical) ?? items[0];
-  const aliases = unique(
-    items.map((item) => item.name.trim()).filter((item) => item && item !== canonical),
-  );
-  const sources = unique(
+  const primary = pickPrimary(canonical, items, knownNames);
+
+  // 炮制名、来源名都做成子项。本尊自己的原名如果就是黄芪，不会进这个清单
+  const children = dedupeChildren(
     items
-      .map((item) => interpretHerbName(item.name, knownNames).source)
-      .filter((item) => item),
+      .map((item) => toHerbChild(item, knownNames))
+      .filter((child): child is HerbChild => child !== null),
   );
-  const mergedIds = items.map((item) => item.id).filter((id) => id !== primary.id);
+
+  // 被收进来的编号都留着，旧链接还能打开这张卡
+  const mergedIds = unique(items.map((item) => item.id).filter((id) => id !== primary.id));
+
+  // 来源栏只收下植物来源。炙黄芪的炮制不写进这里
+  const sources = unique(children.map((child) => child.source).filter((item) => item));
+
+  // 搜索仍能用原名找到这张卡
+  const aliases = unique(children.map((child) => child.name).filter((item) => item));
+
+  // 卡上显示本尊的名字。这条如果本身是炮制品，功效留在子项，不抄到本尊
+  const parent = asParent(primary, canonical, knownNames);
+
+  return {
+    ...parent,
+    aliases: aliases.length > 0 ? aliases : undefined,
+    sources: sources.length > 0 ? sources : undefined,
+    children: children.length > 0 ? children : undefined,
+    mergedIds: mergedIds.length > 0 ? mergedIds : undefined,
+  };
+}
+
+// 先用名字正好是本尊的那条。没有的话，用来源名顶上，因为它和本尊是同一味药
+function pickPrimary(canonical: string, items: Herb[], knownNames: Set<string>): Herb {
+  const bare = items.find((item) => isBareName(item, canonical, knownNames));
+
+  if (bare) {
+    return bare;
+  }
+
+  const sourceOnly = items.find((item) => {
+    const reading = interpretHerbName(item.name, knownNames);
+
+    return Boolean(reading.source) && !reading.process;
+  });
+
+  if (sourceOnly) {
+    return sourceOnly;
+  }
+
+  return items[0];
+}
+
+// 名字和读出来的药材名一样，而且没有炮制、没有来源，才是本尊
+function isBareName(item: Herb, canonical: string, knownNames: Set<string>) {
+  const reading = interpretHerbName(item.name, knownNames);
+
+  return item.name.trim() === canonical && !reading.process && !reading.source;
+}
+
+// 卡上的药名改成本尊。这条如果本身是炮制品，功效留在子项上，不写到本尊身上
+function asParent(primary: Herb, canonical: string, knownNames: Set<string>): Herb {
+  const reading = interpretHerbName(primary.name, knownNames);
+  const bare = isBareName(primary, canonical, knownNames);
+
+  if (bare || !reading.process) {
+    return {
+      ...primary,
+      name: canonical,
+    };
+  }
 
   return {
     ...primary,
     name: canonical,
-    aliases: aliases.length > 0 ? aliases : undefined,
-    sources: sources.length > 0 ? sources : undefined,
-    mergedIds: mergedIds.length > 0 ? mergedIds : undefined,
+    nature: "",
+    meridians: "",
+    functions: "",
+    indications: "",
   };
+}
+
+// 把一条炮制名或来源名收成子项。本尊自己返回空，避免黄芪再挂一个黄芪
+function toHerbChild(item: Herb, knownNames: Set<string>): HerbChild | null {
+  const reading = interpretHerbName(item.name, knownNames);
+
+  if (!reading.process && !reading.source) {
+    return null;
+  }
+
+  return {
+    id: item.id,
+    name: item.name.trim(),
+    process: reading.process,
+    source: reading.source,
+    pinyin: item.pinyin,
+    nature: item.nature,
+    meridians: item.meridians,
+    functions: item.functions,
+    indications: item.indications,
+  };
+}
+
+// 同名又同炮制、同来源的子项只留一条。后一条没有功效时，不覆盖已经有功效的那条
+function dedupeChildren(children: HerbChild[]): HerbChild[] {
+  const seen = new Map<string, HerbChild>();
+  const order: string[] = [];
+
+  for (const child of children) {
+    const key = `${child.name}\n${child.process}\n${child.source}`;
+    const previous = seen.get(key);
+
+    if (!previous) {
+      seen.set(key, child);
+      order.push(key);
+      continue;
+    }
+
+    if (!previous.functions.trim() && child.functions.trim()) {
+      seen.set(key, { ...child, id: previous.id });
+    }
+  }
+
+  return order.flatMap((key) => {
+    const child = seen.get(key);
+
+    return child ? [child] : [];
+  });
 }
 
 function unique(values: string[]) {

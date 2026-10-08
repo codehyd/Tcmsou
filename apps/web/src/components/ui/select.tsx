@@ -60,7 +60,8 @@ function SelectContent({
   sideOffset = 4,
   align = "center",
   alignOffset = 0,
-  alignItemWithTrigger = true,
+  // 关掉「选中项盖住按钮」。盖住时按钮和菜单叠成两层，像有两个下拉
+  alignItemWithTrigger = false,
   ...props
 }: SelectPrimitive.Popup.Props &
   Pick<
@@ -69,13 +70,14 @@ function SelectContent({
   >) {
   return (
     <SelectPrimitive.Portal>
+      {/* 菜单要比新增编辑窗高，窗是 50，这里再抬一档，才不会被窗挡住 */}
       <SelectPrimitive.Positioner
         side={side}
         sideOffset={sideOffset}
         align={align}
         alignOffset={alignOffset}
         alignItemWithTrigger={alignItemWithTrigger}
-        className="isolate z-50"
+        className="isolate z-[80]"
       >
         <SelectPrimitive.Popup
           data-slot="select-content"
