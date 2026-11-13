@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D 煎药台预览</title>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="scene"></canvas>
+      <aside class="hud">
+        <p class="eyebrow">Three.js 预览</p>
+        <h1>煎药台</h1>
+        <p class="hint">拖动旋转看体积 · 滚轮缩放 · 点药材入锅</p>
+        <p class="hint">想要「手能摸到」的真皮：把 Meshy/扫描出的 <code>.glb</code> 拖进来</p>
+        <div id="pot-list" class="pot-list">锅里还是空的</div>
+      </aside>
+      <div id="drop-hint" class="drop-hint" hidden>松开即可加载模型</div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
